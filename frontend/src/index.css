@@ -1,0 +1,43 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-gray-50 text-gray-900 antialiased;
+  }
+}
+
+@layer components {
+  .btn-primary {
+    @apply bg-primary-600 hover:bg-primary-700 text-white font-medium px-4 py-2 rounded-lg
+           transition-colors duration-150 disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+  .btn-secondary {
+    @apply bg-white hover:bg-gray-50 text-gray-700 font-medium px-4 py-2 rounded-lg border
+           border-gray-300 transition-colors duration-150 disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+  .input {
+    @apply w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none
+           focus:ring-2 focus:ring-primary-500 focus:border-transparent text-sm;
+  }
+  .card {
+    @apply bg-white rounded-xl shadow-sm border border-gray-200;
+  }
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { @apply bg-gray-300 rounded-full; }
+::-webkit-scrollbar-thumb:hover { @apply bg-gray-400; }
+
+/* Markdown prose styles */
+.prose-chat p { @apply mb-2 last:mb-0; }
+.prose-chat ul { @apply list-disc pl-5 mb-2 space-y-1; }
+.prose-chat ol { @apply list-decimal pl-5 mb-2 space-y-1; }
+.prose-chat strong { @apply font-semibold; }
+.prose-chat code { @apply bg-gray-100 px-1 py-0.5 rounded text-sm font-mono; }
+.prose-chat pre { @apply bg-gray-100 p-3 rounded-lg overflow-x-auto mb-2; }
+.prose-chat pre code { @apply bg-transparent p-0; }
+.prose-chat h1, .prose-chat h2, .prose-chat h3 { @apply font-semibold mb-1 mt-3 first:mt-0; }
