@@ -75,3 +75,31 @@ class QueryResponse(BaseModel):
     answer: str
     sources: list[SourceReference]
     chunks_used: int
+
+
+# ── Shared Chat ───────────────────────────────────────────────────────────────
+
+class SharedMessageSource(BaseModel):
+    filename: str
+    course: str
+    page: int
+    doc_id: int
+
+
+class SharedMessage(BaseModel):
+    role: str  # "user" | "assistant"
+    content: str
+    sources: list[SharedMessageSource] = []
+
+
+class ShareChatRequest(BaseModel):
+    title: str
+    messages: list[SharedMessage]
+
+
+class SharedChatOut(BaseModel):
+    token: str
+    title: str
+    messages: list[SharedMessage]
+    shared_by: str  # full_name of owner
+    created_at: datetime

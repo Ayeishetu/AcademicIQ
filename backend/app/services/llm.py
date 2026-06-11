@@ -1,21 +1,14 @@
 """
-LLM service — uses Anthropic Claude to generate grounded answers.
+LLM service — uses a local Ollama model to generate grounded answers.
+Calls http://localhost:11434/api/generate (non-streaming) via httpx.
 """
-import anthropic
+import httpx
 
 from app.core.config import get_settings
 
 settings = get_settings()
 
-_client: anthropic.AsyncAnthropic | None = None
-
-
-def _get_client() -> anthropic.AsyncAnthropic:
-    global _client
-    if _client is None:
-        _client = anthropic.AsyncAnthropic(api_key=settings.anthropic_api_key)
-    return _client
-
+OLLAMA_URL = "http://localhost:11434/api/generate"
 
 SYSTEM_PROMPT = """You are an intelligent academic assistant helping students understand their course materials.
 You answer questions based ONLY on the provided context excerpts from the student's uploaded documents.
@@ -43,44 +36,59 @@ def _build_context_block(chunks: list[dict]) -> str:
     return "\n".join(lines)
 
 
+def _build_prompt(
+    question: str,
+    context_block: str,
+    conversation_history: list[dict] | None,
+) -> str:
+    """Build the full prompt string including system instructions, history, and user question."""
+    parts = [SYSTEM_PROMPT, ""]
+
+    # Append prior conversation turns as plain text
+    if conversation_history:
+        for msg in conversation_history[-6:]:  # last 3 turns
+            role = "User" if msg["role"] == "user" else "Assistant"
+            parts.append(f"{role}: {msg['content']}")
+        parts.append("")
+
+    parts.append("Here are relevant excerpts from the course materials:")
+    parts.append("")
+    parts.append(context_block)
+    parts.append("")
+    parts.append(f"Based on the above context, please answer this question:")
+    parts.append(question)
+
+    return "\n".join(parts)
+
+
 async def generate_answer(
     question: str,
     chunks: list[dict],
     conversation_history: list[dict] | None = None,
 ) -> dict:
     """
-    Generate an answer using Claude with RAG context.
+    Generate an answer using a local Ollama model with RAG context.
 
     Returns:
         {
             "answer": str,
-            "sources": [{"filename": str, "course": str, "page": int}]
+            "sources": [{"filename": str, "course": str, "page": int, "doc_id": int}]
         }
     """
-    client = _get_client()
     context_block = _build_context_block(chunks)
+    prompt = _build_prompt(question, context_block, conversation_history)
 
-    user_message = f"""Here are relevant excerpts from the course materials:
-
-{context_block}
-
-Based on the above context, please answer this question:
-{question}"""
-
-    messages = []
-    # Include conversation history if provided (for multi-turn chat)
-    if conversation_history:
-        messages.extend(conversation_history[-6:])  # last 3 turns
-    messages.append({"role": "user", "content": user_message})
-
-    response = await client.messages.create(
-        model=settings.llm_model,
-        max_tokens=1500,
-        system=SYSTEM_PROMPT,
-        messages=messages,
-    )
-
-    answer_text = response.content[0].text
+    async with httpx.AsyncClient(timeout=120.0) as client:
+        response = await client.post(
+            OLLAMA_URL,
+            json={
+                "model": settings.llm_model,
+                "prompt": prompt,
+                "stream": False,
+            },
+        )
+        response.raise_for_status()
+        answer_text = response.json()["response"]
 
     # Deduplicate sources
     seen = set()

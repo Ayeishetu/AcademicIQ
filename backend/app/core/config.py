@@ -3,10 +3,6 @@ from functools import lru_cache
 
 
 class Settings(BaseSettings):
-    # API Keys
-    openai_api_key: str = ""
-    anthropic_api_key: str = ""
-
     # Auth
     secret_key: str = "dev-secret-change-in-production"
     algorithm: str = "HS256"
@@ -23,8 +19,8 @@ class Settings(BaseSettings):
     chunk_size: int = 500          # tokens per chunk
     chunk_overlap: int = 50        # token overlap between chunks
     top_k_results: int = 5         # number of chunks to retrieve
-    embedding_model: str = "text-embedding-3-small"
-    llm_model: str = "claude-sonnet-4-20250514"
+    llm_model: str = "gemma3"
+    ollama_url: str = "http://localhost:11434"
 
     class Config:
         env_file = ".env"

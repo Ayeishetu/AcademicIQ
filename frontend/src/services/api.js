@@ -62,4 +62,11 @@ export const chatApi = {
     }),
 }
 
+// ── Share ─────────────────────────────────────────────────────────────────────
+
+export const shareApi = {
+  create: (title, messages) => api.post('/share/', { title, messages }),
+  get: (token) => api.get(`/share/${token}`),
+}
+
 export default api

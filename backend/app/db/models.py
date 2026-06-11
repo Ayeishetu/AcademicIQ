@@ -1,3 +1,4 @@
+import uuid
 from datetime import datetime, timezone
 from sqlalchemy import String, Integer, DateTime, ForeignKey, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -17,6 +18,7 @@ class User(Base):
     )
 
     documents: Mapped[list["Document"]] = relationship("Document", back_populates="owner")
+    shared_chats: Mapped[list["SharedChat"]] = relationship("SharedChat", back_populates="owner")
 
 
 class Document(Base):
@@ -34,3 +36,21 @@ class Document(Base):
     )
 
     owner: Mapped["User"] = relationship("User", back_populates="documents")
+
+
+class SharedChat(Base):
+    __tablename__ = "shared_chats"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    token: Mapped[str] = mapped_column(
+        String(64), unique=True, index=True, nullable=False,
+        default=lambda: uuid.uuid4().hex
+    )
+    title: Mapped[str] = mapped_column(String(500), nullable=False, default="Shared Chat")
+    messages_json: Mapped[str] = mapped_column(Text, nullable=False)  # JSON array
+    user_id: Mapped[int] = mapped_column(Integer, ForeignKey("users.id"), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)
+    )
+
+    owner: Mapped["User"] = relationship("User", back_populates="shared_chats")

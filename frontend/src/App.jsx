@@ -4,6 +4,7 @@ import LoginPage from './pages/LoginPage'
 import RegisterPage from './pages/RegisterPage'
 import DashboardPage from './pages/DashboardPage'
 import ChatPage from './pages/ChatPage'
+import SharedChatPage from './pages/SharedChatPage'
 import Layout from './components/Layout'
 
 function PrivateRoute({ children }) {
@@ -30,6 +31,8 @@ export default function App() {
           <Route path="chat" element={<ChatPage />} />
           <Route path="documents" element={<DashboardPage />} />
         </Route>
+        {/* Public shared-chat view — no auth needed */}
+        <Route path="/share/:token" element={<SharedChatPage />} />
         <Route path="*" element={<Navigate to="/chat" replace />} />
       </Routes>
     </AuthProvider>

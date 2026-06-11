@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
-import { Send, Loader2, BookOpen, Sparkles } from 'lucide-react'
-import { chatApi, documentsApi } from '../services/api'
+import { Send, Loader2, BookOpen, Sparkles, Share2, Check, X } from 'lucide-react'
+import { chatApi, documentsApi, shareApi } from '../services/api'
 import ChatMessage from '../components/ChatMessage'
 import CourseFilter from '../components/CourseFilter'
 
@@ -17,8 +17,11 @@ export default function ChatPage() {
   const [loading, setLoading] = useState(false)
   const [courses, setCourses] = useState([])
   const [selectedCourse, setSelectedCourse] = useState(null)
+  const [shareState, setShareState] = useState('idle') // 'idle' | 'loading' | 'done' | 'error'
+  const [shareLink, setShareLink] = useState('')
   const bottomRef = useRef(null)
   const inputRef = useRef(null)
+  const shareLinkRef = useRef(null)
 
   // Load courses for filter
   useEffect(() => {
@@ -84,6 +87,42 @@ export default function ChatPage() {
 
   const clearChat = () => {
     setMessages([WELCOME_MESSAGE])
+    setShareState('idle')
+    setShareLink('')
+  }
+
+  // Derive a title from the first user message
+  const deriveTitle = () => {
+    const firstUser = messages.find((m) => m.role === 'user')
+    if (!firstUser) return 'Shared Chat'
+    return firstUser.content.length > 80
+      ? firstUser.content.slice(0, 80) + '…'
+      : firstUser.content
+  }
+
+  const handleShare = async () => {
+    const shareable = messages.filter((m) => m !== WELCOME_MESSAGE)
+    if (shareable.length === 0) return
+
+    setShareState('loading')
+    try {
+      const { data } = await shareApi.create(deriveTitle(), shareable)
+      const url = `${window.location.origin}/share/${data.token}`
+      setShareLink(url)
+      setShareState('done')
+      // Auto-select link text on next render
+      setTimeout(() => shareLinkRef.current?.select(), 50)
+    } catch {
+      setShareState('error')
+      setTimeout(() => setShareState('idle'), 3000)
+    }
+  }
+
+  const copyLink = () => {
+    navigator.clipboard.writeText(shareLink).catch(() => {
+      shareLinkRef.current?.select()
+      document.execCommand('copy')
+    })
   }
 
   return (
@@ -95,13 +134,58 @@ export default function ChatPage() {
             <Sparkles className="w-5 h-5 text-primary-600" />
             <h1 className="font-semibold text-gray-900">Ask a Question</h1>
           </div>
-          <button
-            onClick={clearChat}
-            className="text-xs text-gray-400 hover:text-gray-600 transition-colors"
-          >
-            Clear chat
-          </button>
+          <div className="flex items-center gap-3">
+            {/* Share button — only visible once there's a real conversation */}
+            {messages.length > 1 && (
+              <button
+                onClick={handleShare}
+                disabled={shareState === 'loading'}
+                className="flex items-center gap-1.5 text-xs text-gray-500 hover:text-primary-600 transition-colors disabled:opacity-50"
+              >
+                {shareState === 'loading' ? (
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                ) : shareState === 'error' ? (
+                  <X className="w-3.5 h-3.5 text-red-500" />
+                ) : (
+                  <Share2 className="w-3.5 h-3.5" />
+                )}
+                {shareState === 'error' ? 'Failed' : 'Share'}
+              </button>
+            )}
+            <button
+              onClick={clearChat}
+              className="text-xs text-gray-400 hover:text-gray-600 transition-colors"
+            >
+              Clear chat
+            </button>
+          </div>
         </div>
+
+        {/* Share link banner */}
+        {shareState === 'done' && shareLink && (
+          <div className="mb-3 flex items-center gap-2 bg-green-50 border border-green-200 rounded-lg px-3 py-2">
+            <Check className="w-3.5 h-3.5 text-green-600 flex-shrink-0" />
+            <input
+              ref={shareLinkRef}
+              readOnly
+              value={shareLink}
+              className="flex-1 bg-transparent text-xs text-green-800 outline-none cursor-text truncate"
+              onClick={(e) => e.target.select()}
+            />
+            <button
+              onClick={copyLink}
+              className="text-xs font-medium text-green-700 hover:text-green-900 whitespace-nowrap"
+            >
+              Copy
+            </button>
+            <button
+              onClick={() => setShareState('idle')}
+              className="text-green-400 hover:text-green-600"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        )}
 
         {courses.length > 0 && (
           <CourseFilter

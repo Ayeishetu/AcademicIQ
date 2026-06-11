@@ -2,7 +2,7 @@ from typing import Optional
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 
-from app.db.models import User, Document
+from app.db.models import User, Document, SharedChat
 from app.core.security import hash_password
 
 
@@ -87,3 +87,26 @@ async def get_courses_by_user(db: AsyncSession, user_id: int) -> list[str]:
         select(Document.course).where(Document.user_id == user_id).distinct()
     )
     return [row[0] for row in result.all()]
+
+
+# ── Shared Chat CRUD ───────────────────────────────────────────────────────────
+
+async def create_shared_chat(
+    db: AsyncSession, title: str, messages_json: str, user_id: int
+) -> SharedChat:
+    chat = SharedChat(
+        title=title,
+        messages_json=messages_json,
+        user_id=user_id,
+    )
+    db.add(chat)
+    await db.commit()
+    await db.refresh(chat)
+    return chat
+
+
+async def get_shared_chat_by_token(db: AsyncSession, token: str) -> Optional[SharedChat]:
+    result = await db.execute(
+        select(SharedChat).where(SharedChat.token == token)
+    )
+    return result.scalar_one_or_none()
