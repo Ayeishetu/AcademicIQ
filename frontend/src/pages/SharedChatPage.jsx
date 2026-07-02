@@ -57,7 +57,7 @@ export default function SharedChatPage() {
             to="/login"
             className="inline-flex items-center gap-2 text-sm font-medium text-primary-600 hover:text-primary-700"
           >
-            Go to AcademIQ →
+            Go to AcademicIQ →
           </Link>
         </div>
       </div>
@@ -74,7 +74,7 @@ export default function SharedChatPage() {
               <GraduationCap className="w-4 h-4 text-white" />
             </div>
             <span className="font-bold text-gray-900 group-hover:text-primary-600 transition-colors">
-              AcademIQ
+              AcademicIQ
             </span>
           </Link>
           <Link
@@ -165,7 +165,7 @@ export default function SharedChatPage() {
           <div className="w-10 h-10 bg-primary-100 rounded-xl flex items-center justify-center mx-auto mb-3">
             <GraduationCap className="w-5 h-5 text-primary-600" />
           </div>
-          <h2 className="font-semibold text-gray-900 mb-1">Study smarter with AcademIQ</h2>
+          <h2 className="font-semibold text-gray-900 mb-1">Study smarter with AcademicIQ</h2>
           <p className="text-sm text-gray-500 mb-4">
             Upload your lecture notes and get AI-powered answers with citations.
           </p>
