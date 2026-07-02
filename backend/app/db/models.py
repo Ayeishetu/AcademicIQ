@@ -19,6 +19,7 @@ class User(Base):
 
     documents: Mapped[list["Document"]] = relationship("Document", back_populates="owner")
     shared_chats: Mapped[list["SharedChat"]] = relationship("SharedChat", back_populates="owner")
+    chat_sessions: Mapped[list["ChatSession"]] = relationship("ChatSession", back_populates="owner")
 
 
 class Document(Base):
@@ -54,3 +55,38 @@ class SharedChat(Base):
     )
 
     owner: Mapped["User"] = relationship("User", back_populates="shared_chats")
+
+
+class ChatSession(Base):
+    __tablename__ = "chat_sessions"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    title: Mapped[str] = mapped_column(String(500), nullable=False, default="New Chat")
+    user_id: Mapped[int] = mapped_column(Integer, ForeignKey("users.id"), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        default=lambda: datetime.now(timezone.utc),
+    )
+
+    owner: Mapped["User"] = relationship("User", back_populates="chat_sessions")
+    messages: Mapped[list["ChatMessage"]] = relationship(
+        "ChatMessage", back_populates="session", cascade="all, delete-orphan"
+    )
+
+
+class ChatMessage(Base):
+    __tablename__ = "chat_messages"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    session_id: Mapped[int] = mapped_column(Integer, ForeignKey("chat_sessions.id"), nullable=False)
+    role: Mapped[str] = mapped_column(String(20), nullable=False)   # "user" | "assistant"
+    content: Mapped[str] = mapped_column(Text, nullable=False)
+    sources: Mapped[str] = mapped_column(Text, nullable=False, default="[]")  # JSON array
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)
+    )
+
+    session: Mapped["ChatSession"] = relationship("ChatSession", back_populates="messages")

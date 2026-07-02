@@ -1,16 +1,18 @@
-# Academic Resource Sharing & Intelligent QA System
+# AcademicIQ — AI Study Assistant
 
 A full-stack AI-powered platform for students to upload lecture notes and past exam questions, then ask intelligent questions answered via RAG (Retrieval-Augmented Generation).
 
+> **Note:** Answer generation uses the Anthropic API (Claude Sonnet). An internet connection and a valid `ANTHROPIC_API_KEY` are required for chat. Embeddings and vector search remain fully local.
+
 ## Tech Stack
 
-- **Frontend**: React + Tailwind CSS + Vite
-- **Backend**: Python FastAPI
+- **Frontend**: React 18 + Tailwind CSS + Vite
+- **Backend**: Python FastAPI (async)
 - **Vector DB**: ChromaDB (local)
-- **Embeddings**: OpenAI `text-embedding-3-small`
-- **LLM**: Claude `claude-sonnet-4-20250514`
-- **File Parsing**: PyMuPDF (PDF), python-docx (DOCX)
-- **Auth**: JWT-based simple auth
+- **Embeddings**: `all-MiniLM-L6-v2` via sentence-transformers (local, no API key)
+- **LLM**: Anthropic API — `claude-sonnet-4-5` (requires `ANTHROPIC_API_KEY`)
+- **File Parsing**: PyMuPDF (PDF), python-docx (DOCX), plain text (TXT)
+- **Auth**: JWT-based auth (HS256, 7-day tokens)
 
 ## Project Structure
 
@@ -65,9 +67,12 @@ npm run dev
 ## Environment Variables
 
 ```
-OPENAI_API_KEY=your_openai_key
-ANTHROPIC_API_KEY=your_anthropic_key
 SECRET_KEY=your_jwt_secret
+ACCESS_TOKEN_EXPIRE_MINUTES=10080
+DATABASE_URL=sqlite+aiosqlite:///./academic_rag.db
+CHROMA_PERSIST_DIR=./chroma_db
+UPLOAD_DIR=./uploads
+ANTHROPIC_API_KEY=your_anthropic_api_key
 ```
 
 ## Features

@@ -62,6 +62,7 @@ class QueryRequest(BaseModel):
     question: str
     course: Optional[str] = None
     conversation_history: Optional[list[ChatMessage]] = None
+    session_id: Optional[int] = None
 
 
 class SourceReference(BaseModel):
@@ -75,6 +76,28 @@ class QueryResponse(BaseModel):
     answer: str
     sources: list[SourceReference]
     chunks_used: int
+    session_id: int
+
+
+# ── Chat Sessions ─────────────────────────────────────────────────────────────
+
+class ChatSessionOut(BaseModel):
+    id: int
+    title: str
+    created_at: datetime
+    updated_at: datetime
+
+    model_config = {"from_attributes": True}
+
+
+class ChatMessageOut(BaseModel):
+    id: int
+    role: str
+    content: str
+    sources: list[SourceReference]
+    created_at: datetime
+
+    model_config = {"from_attributes": True}
 
 
 # ── Shared Chat ───────────────────────────────────────────────────────────────

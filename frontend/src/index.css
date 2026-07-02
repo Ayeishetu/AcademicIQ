@@ -32,6 +32,10 @@
 ::-webkit-scrollbar-thumb { @apply bg-gray-300 rounded-full; }
 ::-webkit-scrollbar-thumb:hover { @apply bg-gray-400; }
 
+/* Hide scrollbar for course filter horizontal scroll */
+.scrollbar-hide::-webkit-scrollbar { display: none; }
+.scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+
 /* Markdown prose styles */
 .prose-chat p { @apply mb-2 last:mb-0; }
 .prose-chat ul { @apply list-disc pl-5 mb-2 space-y-1; }
@@ -41,3 +45,5 @@
 .prose-chat pre { @apply bg-gray-100 p-3 rounded-lg overflow-x-auto mb-2; }
 .prose-chat pre code { @apply bg-transparent p-0; }
 .prose-chat h1, .prose-chat h2, .prose-chat h3 { @apply font-semibold mb-1 mt-3 first:mt-0; }
+/* Prevent tables from breaking layout on mobile */
+.prose-chat table { @apply block overflow-x-auto; }

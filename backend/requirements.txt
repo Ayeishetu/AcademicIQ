@@ -11,6 +11,7 @@ pydantic-settings==2.9.1
 # RAG / AI
 tiktoken==0.9.0
 sentence-transformers==3.4.1
+anthropic==0.49.0
 
 # Vector DB
 chromadb==0.4.24

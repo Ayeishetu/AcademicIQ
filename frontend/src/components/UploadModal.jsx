@@ -58,8 +58,8 @@ export default function UploadModal({ onClose, onSuccess }) {
   }
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="card w-full max-w-md p-6">
+    <div className="fixed inset-0 bg-black/50 flex items-end sm:items-center justify-center z-50 p-0 sm:p-4">
+      <div className="card w-full sm:max-w-md p-5 sm:p-6 rounded-t-2xl sm:rounded-xl max-h-[92dvh] overflow-y-auto">
         <div className="flex items-center justify-between mb-5">
           <h2 className="text-lg font-semibold text-gray-900">Upload Document</h2>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
@@ -80,7 +80,7 @@ export default function UploadModal({ onClose, onSuccess }) {
             onDragLeave={() => setDragOver(false)}
             onDrop={handleDrop}
             onClick={() => fileInputRef.current?.click()}
-            className={`border-2 border-dashed rounded-xl p-8 text-center cursor-pointer transition-colors ${
+            className={`border-2 border-dashed rounded-xl p-5 md:p-8 text-center cursor-pointer transition-colors ${
               dragOver
                 ? 'border-primary-400 bg-primary-50'
                 : file

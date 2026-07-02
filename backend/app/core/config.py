@@ -19,8 +19,15 @@ class Settings(BaseSettings):
     chunk_size: int = 500          # tokens per chunk
     chunk_overlap: int = 50        # token overlap between chunks
     top_k_results: int = 5         # number of chunks to retrieve
-    llm_model: str = "gemma3"
-    ollama_url: str = "http://localhost:11434"
+
+    # Anthropic (LLM generation)
+    anthropic_api_key: str = ""
+    anthropic_model: str = "claude-sonnet-4-5"
+    anthropic_max_tokens: int = 1000
+
+    # Previous local LLM provider (Ollama/gemma3) — kept for reference if rolling back
+    # llm_model: str = "gemma3"
+    # ollama_url: str = "http://localhost:11434"
 
     class Config:
         env_file = ".env"

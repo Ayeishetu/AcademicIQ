@@ -1,8 +1,8 @@
 from typing import Optional
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
+from sqlalchemy import select, update
 
-from app.db.models import User, Document, SharedChat
+from app.db.models import User, Document, SharedChat, ChatSession, ChatMessage
 from app.core.security import hash_password
 
 
@@ -110,3 +110,93 @@ async def get_shared_chat_by_token(db: AsyncSession, token: str) -> Optional[Sha
         select(SharedChat).where(SharedChat.token == token)
     )
     return result.scalar_one_or_none()
+
+
+# ── Chat Session CRUD ─────────────────────────────────────────────────────────
+
+async def create_chat_session(db: AsyncSession, user_id: int, title: str = "New Chat") -> ChatSession:
+    session = ChatSession(user_id=user_id, title=title)
+    db.add(session)
+    await db.commit()
+    await db.refresh(session)
+    return session
+
+
+async def get_chat_sessions_by_user(db: AsyncSession, user_id: int) -> list[ChatSession]:
+    result = await db.execute(
+        select(ChatSession)
+        .where(ChatSession.user_id == user_id)
+        .order_by(ChatSession.updated_at.desc())
+    )
+    return list(result.scalars().all())
+
+
+async def get_chat_session_by_id(
+    db: AsyncSession, session_id: int, user_id: int
+) -> Optional[ChatSession]:
+    result = await db.execute(
+        select(ChatSession).where(
+            ChatSession.id == session_id,
+            ChatSession.user_id == user_id,
+        )
+    )
+    return result.scalar_one_or_none()
+
+
+async def update_chat_session_title(
+    db: AsyncSession, session_id: int, title: str
+) -> None:
+    from datetime import datetime, timezone
+    await db.execute(
+        update(ChatSession)
+        .where(ChatSession.id == session_id)
+        .values(title=title, updated_at=datetime.now(timezone.utc))
+    )
+    await db.commit()
+
+
+async def touch_chat_session(db: AsyncSession, session_id: int) -> None:
+    """Bump updated_at so the session floats to the top of the list."""
+    from datetime import datetime, timezone
+    await db.execute(
+        update(ChatSession)
+        .where(ChatSession.id == session_id)
+        .values(updated_at=datetime.now(timezone.utc))
+    )
+    await db.commit()
+
+
+async def delete_chat_session(db: AsyncSession, session_id: int, user_id: int) -> bool:
+    session = await get_chat_session_by_id(db, session_id, user_id)
+    if not session:
+        return False
+    await db.delete(session)
+    await db.commit()
+    return True
+
+
+# ── Chat Message CRUD ─────────────────────────────────────────────────────────
+
+async def add_chat_message(
+    db: AsyncSession,
+    session_id: int,
+    role: str,
+    content: str,
+    sources: str = "[]",
+) -> ChatMessage:
+    msg = ChatMessage(session_id=session_id, role=role, content=content, sources=sources)
+    db.add(msg)
+    await db.commit()
+    await db.refresh(msg)
+    return msg
+
+
+async def get_messages_by_session(
+    db: AsyncSession, session_id: int
+) -> list[ChatMessage]:
+    result = await db.execute(
+        select(ChatMessage)
+        .where(ChatMessage.session_id == session_id)
+        .order_by(ChatMessage.created_at.asc())
+    )
+    return list(result.scalars().all())

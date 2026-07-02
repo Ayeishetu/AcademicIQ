@@ -27,7 +27,7 @@ function FileTypeIcon({ type }) {
     txt: 'text-gray-500 bg-gray-100',
   }
   return (
-    <div className={`w-9 h-9 rounded-lg flex items-center justify-center ${colors[type] || colors.txt}`}>
+    <div className={`w-8 h-8 md:w-9 md:h-9 rounded-lg flex items-center justify-center flex-shrink-0 ${colors[type] || colors.txt}`}>
       <FileText className="w-4 h-4" />
     </div>
   )
@@ -57,9 +57,7 @@ export default function DashboardPage() {
     }
   }, [selectedCourse])
 
-  useEffect(() => {
-    fetchData()
-  }, [fetchData])
+  useEffect(() => { fetchData() }, [fetchData])
 
   const handleDelete = async (doc) => {
     if (!window.confirm(`Delete "${doc.original_filename}"? This cannot be undone.`)) return
@@ -67,13 +65,10 @@ export default function DashboardPage() {
     try {
       await documentsApi.delete(doc.id)
       setDocuments((prev) => prev.filter((d) => d.id !== doc.id))
-      // Refresh courses in case this was the last doc for a course
       const { data } = await documentsApi.courses()
       setCourses(data)
-      if (selectedCourse && !data.includes(selectedCourse)) {
-        setSelectedCourse(null)
-      }
-    } catch (err) {
+      if (selectedCourse && !data.includes(selectedCourse)) setSelectedCourse(null)
+    } catch {
       alert('Failed to delete document. Please try again.')
     } finally {
       setDeletingId(null)
@@ -82,10 +77,9 @@ export default function DashboardPage() {
 
   const handleUploadSuccess = (newDoc) => {
     setDocuments((prev) => [newDoc, ...prev])
-    fetchData() // refresh to get updated courses
+    fetchData()
   }
 
-  // Group documents by course
   const grouped = documents.reduce((acc, doc) => {
     if (!acc[doc.course]) acc[doc.course] = []
     acc[doc.course].push(doc)
@@ -95,16 +89,16 @@ export default function DashboardPage() {
   return (
     <div className="flex flex-col h-full">
       {/* Header */}
-      <div className="bg-white border-b border-gray-200 px-6 py-4">
-        <div className="flex items-center justify-between mb-3">
+      <div className="bg-white border-b border-gray-200 px-4 md:px-6 py-3 md:py-4">
+        <div className="flex items-center justify-between mb-2 md:mb-3">
           <div className="flex items-center gap-2">
-            <BookOpen className="w-5 h-5 text-primary-600" />
-            <h1 className="font-semibold text-gray-900">My Documents</h1>
+            <BookOpen className="w-4 h-4 md:w-5 md:h-5 text-primary-600" />
+            <h1 className="font-semibold text-gray-900 text-sm md:text-base">My Documents</h1>
             <span className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full">
               {documents.length}
             </span>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5 md:gap-2">
             <button
               onClick={fetchData}
               className="p-2 text-gray-400 hover:text-gray-600 transition-colors"
@@ -114,10 +108,10 @@ export default function DashboardPage() {
             </button>
             <button
               onClick={() => setShowUpload(true)}
-              className="btn-primary flex items-center gap-2 text-sm"
+              className="btn-primary flex items-center gap-1.5 text-sm px-3 py-2"
             >
               <Upload className="w-4 h-4" />
-              Upload
+              <span>Upload</span>
             </button>
           </div>
         </div>
@@ -132,15 +126,15 @@ export default function DashboardPage() {
       </div>
 
       {/* Content */}
-      <div className="flex-1 overflow-y-auto p-6">
+      <div className="flex-1 overflow-y-auto p-4 md:p-6">
         {loading ? (
           <div className="flex items-center justify-center h-40">
             <Loader2 className="w-6 h-6 text-primary-500 animate-spin" />
           </div>
         ) : documents.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-64 text-center">
-            <div className="w-16 h-16 bg-gray-100 rounded-2xl flex items-center justify-center mb-4">
-              <BookOpen className="w-8 h-8 text-gray-400" />
+          <div className="flex flex-col items-center justify-center h-64 text-center px-4">
+            <div className="w-14 h-14 md:w-16 md:h-16 bg-gray-100 rounded-2xl flex items-center justify-center mb-4">
+              <BookOpen className="w-7 h-7 md:w-8 md:h-8 text-gray-400" />
             </div>
             <h3 className="font-medium text-gray-900 mb-1">No documents yet</h3>
             <p className="text-sm text-gray-500 mb-4 max-w-xs">
@@ -155,7 +149,7 @@ export default function DashboardPage() {
             </button>
           </div>
         ) : (
-          <div className="space-y-6">
+          <div className="space-y-4 md:space-y-6">
             {Object.entries(grouped).map(([course, docs]) => (
               <CourseGroup
                 key={course}
@@ -186,34 +180,34 @@ function CourseGroup({ course, docs, onDelete, deletingId }) {
     <div className="card overflow-hidden">
       <button
         onClick={() => setCollapsed(!collapsed)}
-        className="w-full flex items-center justify-between px-5 py-3.5 bg-gray-50 border-b border-gray-200 hover:bg-gray-100 transition-colors"
+        className="w-full flex items-center justify-between px-4 md:px-5 py-3 md:py-3.5 bg-gray-50 border-b border-gray-200 hover:bg-gray-100 transition-colors"
       >
-        <div className="flex items-center gap-2">
-          <BookOpen className="w-4 h-4 text-primary-600" />
-          <span className="font-medium text-gray-900 text-sm">{course}</span>
-          <span className="text-xs bg-primary-100 text-primary-700 px-2 py-0.5 rounded-full">
-            {docs.length} file{docs.length !== 1 ? 's' : ''}
+        <div className="flex items-center gap-2 min-w-0">
+          <BookOpen className="w-4 h-4 text-primary-600 flex-shrink-0" />
+          <span className="font-medium text-gray-900 text-sm truncate">{course}</span>
+          <span className="text-xs bg-primary-100 text-primary-700 px-2 py-0.5 rounded-full flex-shrink-0">
+            {docs.length}
           </span>
         </div>
         <ChevronDown
-          className={`w-4 h-4 text-gray-400 transition-transform ${collapsed ? '-rotate-90' : ''}`}
+          className={`w-4 h-4 text-gray-400 transition-transform flex-shrink-0 ${collapsed ? '-rotate-90' : ''}`}
         />
       </button>
 
       {!collapsed && (
         <div className="divide-y divide-gray-100">
           {docs.map((doc) => (
-            <div key={doc.id} className="flex items-center gap-4 px-5 py-3.5 hover:bg-gray-50">
+            <div key={doc.id} className="flex items-center gap-3 px-4 md:px-5 py-3 md:py-3.5 hover:bg-gray-50">
               <FileTypeIcon type={doc.file_type} />
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-medium text-gray-900 truncate">
                   {doc.original_filename}
                 </p>
-                <div className="flex items-center gap-3 mt-0.5">
+                <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 mt-0.5">
                   <span className="text-xs text-gray-400">{formatDate(doc.created_at)}</span>
                   {doc.chunk_count > 0 ? (
                     <span className="text-xs text-green-600 bg-green-50 px-1.5 py-0.5 rounded">
-                      {doc.chunk_count} chunks indexed
+                      {doc.chunk_count} chunks
                     </span>
                   ) : (
                     <span className="text-xs text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded flex items-center gap-1">
@@ -226,7 +220,7 @@ function CourseGroup({ course, docs, onDelete, deletingId }) {
               <button
                 onClick={() => onDelete(doc)}
                 disabled={deletingId === doc.id}
-                className="p-2 text-gray-400 hover:text-red-500 transition-colors disabled:opacity-50"
+                className="p-2 text-gray-400 hover:text-red-500 transition-colors disabled:opacity-50 flex-shrink-0"
                 title="Delete document"
               >
                 {deletingId === doc.id ? (

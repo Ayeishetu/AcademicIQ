@@ -54,12 +54,16 @@ export const documentsApi = {
 // ── Chat ──────────────────────────────────────────────────────────────────────
 
 export const chatApi = {
-  query: (question, course, conversationHistory) =>
+  query: (question, course, conversationHistory, sessionId) =>
     api.post('/chat/query', {
       question,
       course: course || null,
       conversation_history: conversationHistory || null,
+      session_id: sessionId || null,
     }),
+  sessions: () => api.get('/chat/sessions'),
+  getSession: (id) => api.get(`/chat/sessions/${id}`),
+  deleteSession: (id) => api.delete(`/chat/sessions/${id}`),
 }
 
 // ── Share ─────────────────────────────────────────────────────────────────────
