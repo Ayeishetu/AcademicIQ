@@ -11,7 +11,7 @@ class Settings(BaseSettings):
     # Database
     database_url: str = "sqlite+aiosqlite:///./academic_rag.db"
 
-    # Storage
+    # Storage (relative paths — safe for both local and Render)
     chroma_persist_dir: str = "./chroma_db"
     upload_dir: str = "./uploads"
 
@@ -24,6 +24,9 @@ class Settings(BaseSettings):
     anthropic_api_key: str = ""
     anthropic_model: str = "claude-sonnet-4-5"
     anthropic_max_tokens: int = 1000
+
+    # CORS — set to your Vercel URL in production, e.g. https://academiciq.vercel.app
+    frontend_url: str = "http://localhost:5173"
 
     # Previous local LLM provider (Ollama/gemma3) — kept for reference if rolling back
     # llm_model: str = "gemma3"

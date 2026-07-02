@@ -12,9 +12,11 @@ build/
 # Environment
 backend/.env
 *.env
+.env
 
 # Database & storage
 backend/academic_rag.db
+academic_rag.db
 backend/chroma_db/
 backend/uploads/
 

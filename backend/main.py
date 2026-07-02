@@ -29,9 +29,18 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+# CORS — allow the Vercel frontend origin (set via FRONTEND_URL env var)
+# plus localhost origins for local development.
+_frontend_url = settings.frontend_url  # e.g. https://academiciq.vercel.app
+_allowed_origins = list({
+    _frontend_url,
+    "http://localhost:5173",
+    "http://localhost:3000",
+})
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173", "http://localhost:3000"],
+    allow_origins=_allowed_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -50,4 +59,5 @@ async def health():
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
+    port = int(os.environ.get("PORT", 8000))
+    uvicorn.run("main:app", host="0.0.0.0", port=port, reload=False)

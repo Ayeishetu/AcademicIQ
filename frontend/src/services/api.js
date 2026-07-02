@@ -1,7 +1,14 @@
 import axios from 'axios'
 
+// In production (Vercel), set VITE_API_URL to your Render backend URL,
+// e.g. https://academiciq-api.onrender.com
+// In local dev, the Vite proxy rewrites /api → localhost:8000, so baseURL stays '/api'.
+const BASE_URL = import.meta.env.VITE_API_URL
+  ? `${import.meta.env.VITE_API_URL}/api`
+  : '/api'
+
 const api = axios.create({
-  baseURL: '/api',
+  baseURL: BASE_URL,
   timeout: 60000,
 })
 
