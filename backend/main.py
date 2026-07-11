@@ -16,8 +16,24 @@ async def lifespan(app: FastAPI):
     # Startup
     os.makedirs(settings.upload_dir, exist_ok=True)
     os.makedirs(settings.chroma_persist_dir, exist_ok=True)
-    await init_db()
-    print("✅ Database initialized")
+
+    # Database initialisation
+    try:
+        await init_db()
+        print("✅ Database initialized")
+    except Exception as e:
+        print(f"❌ Database initialization failed: {e}")
+        raise
+
+    # Pre-load sentence-transformers model so the first request isn't slow
+    try:
+        from app.services.embeddings import _get_model
+        _get_model()
+        print("✅ Embedding model loaded")
+    except Exception as e:
+        print(f"⚠️  Embedding model failed to load: {e}")
+        # Non-fatal — model will be retried on first use
+
     yield
     # Shutdown (nothing to clean up)
 
@@ -59,5 +75,6 @@ async def health():
 
 if __name__ == "__main__":
     import uvicorn
+    import os
     port = int(os.environ.get("PORT", 8000))
-    uvicorn.run("main:app", host="0.0.0.0", port=port, reload=False)
+    uvicorn.run(app, host="0.0.0.0", port=port)
