@@ -1,0 +1,25 @@
+services:
+  - type: web
+    name: academiciq-api
+    runtime: python
+    rootDir: backend
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: SECRET_KEY
+        generateValue: true
+      - key: ANTHROPIC_API_KEY
+        sync: false
+      - key: FRONTEND_URL
+        sync: false
+      - key: ACCESS_TOKEN_EXPIRE_MINUTES
+        value: "10080"
+      - key: DATABASE_URL
+        value: "sqlite+aiosqlite:///./academic_rag.db"
+      - key: CHROMA_PERSIST_DIR
+        value: "./chroma_db"
+      - key: UPLOAD_DIR
+        value: "./uploads"
+      - key: PYTHON_VERSION
+        value: "3.12.10"
+    healthCheckPath: /api/health
