@@ -25,14 +25,8 @@ async def lifespan(app: FastAPI):
         print(f"❌ Database initialization failed: {e}")
         raise
 
-    # Pre-load sentence-transformers model so the first request isn't slow
-    try:
-        from app.services.embeddings import _get_model
-        _get_model()
-        print("✅ Embedding model loaded")
-    except Exception as e:
-        print(f"⚠️  Embedding model failed to load: {e}")
-        # Non-fatal — model will be retried on first use
+    # NOTE: embedding model is loaded lazily on first use to stay within
+    # the 512 MB RAM limit on Render's free tier.
 
     yield
     # Shutdown (nothing to clean up)

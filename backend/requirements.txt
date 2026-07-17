@@ -11,10 +11,12 @@ email-validator==2.3.0
 
 # RAG / AI
 tiktoken>=0.9.0
-sentence-transformers==3.4.1
+# sentence-transformers intentionally removed: it pulls in PyTorch (~300 MB),
+# which blows Render's 512 MB free-tier RAM limit.
+# Embeddings now use chromadb's built-in ONNX function (onnxruntime, ~80 MB).
 anthropic==0.49.0
 
-# Vector DB
+# Vector DB — includes onnxruntime + MiniLM-L6-v2 ONNX model for embeddings
 chromadb>=0.6.3
 
 # Document parsing
