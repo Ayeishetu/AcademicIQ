@@ -1,22 +1,28 @@
 """
-Generate embeddings using chromadb's built-in default embedding function.
+Generate embeddings using chromadb's ONNX-based embedding function.
 
-Uses ONNXMiniLM_L6_V2 — the all-MiniLM-L6-v2 model (384-dim) via onnxruntime
-instead of PyTorch. Avoids loading the full sentence-transformers / torch stack,
-keeping memory well within Render's 512 MB free-tier limit.
+ONNXMiniLM_L6_V2 runs the all-MiniLM-L6-v2 model (384-dim) via onnxruntime
+instead of PyTorch / sentence-transformers. This keeps peak RAM well under
+the 512 MB free-tier limit on Render.
 
-The model files are downloaded on first use and cached by chromadb automatically.
+The ONNX model file is downloaded on first use and cached automatically.
 """
 import asyncio
 from functools import lru_cache
 
-from chromadb.utils.embedding_functions import DefaultEmbeddingFunction
-
 
 @lru_cache(maxsize=1)
-def _get_model() -> DefaultEmbeddingFunction:
-    """Load the ONNX embedding function once and cache it for the process lifetime."""
-    return DefaultEmbeddingFunction()
+def _get_model():
+    """
+    Load the ONNX embedding function once and cache it for the process lifetime.
+    Tries the dedicated ONNX module first; falls back to DefaultEmbeddingFunction.
+    """
+    try:
+        from chromadb.utils.embedding_functions.onnx_mini_lm_l6_v2 import ONNXMiniLM_L6_V2
+        return ONNXMiniLM_L6_V2()
+    except ImportError:
+        from chromadb.utils.embedding_functions import DefaultEmbeddingFunction
+        return DefaultEmbeddingFunction()
 
 
 async def embed_texts(texts: list[str]) -> list[list[float]]:
@@ -25,8 +31,9 @@ async def embed_texts(texts: list[str]) -> list[list[float]]:
     fn = _get_model()
 
     def _encode():
-        # DefaultEmbeddingFunction returns a list of lists
-        return fn(texts)
+        result = fn(texts)
+        # Ensure plain Python lists (chromadb may return numpy arrays)
+        return [list(map(float, v)) for v in result]
 
     return await loop.run_in_executor(None, _encode)
 

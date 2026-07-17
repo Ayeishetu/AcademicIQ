@@ -1,8 +1,12 @@
 import os
+import traceback
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+
+# Ensure all ORM models are registered on Base.metadata before init_db runs
+import app.db.models  # noqa: F401
 
 from app.db.database import init_db
 from app.api import auth, documents, chat, share
@@ -14,8 +18,13 @@ settings = get_settings()
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Startup
-    os.makedirs(settings.upload_dir, exist_ok=True)
-    os.makedirs(settings.chroma_persist_dir, exist_ok=True)
+    print("🚀 Starting up...")
+    try:
+        os.makedirs(settings.upload_dir, exist_ok=True)
+        os.makedirs(settings.chroma_persist_dir, exist_ok=True)
+        print(f"📁 Directories ready: {settings.upload_dir}, {settings.chroma_persist_dir}")
+    except Exception as e:
+        print(f"⚠️  Directory creation warning: {e}")
 
     # Database initialisation
     try:
@@ -23,10 +32,12 @@ async def lifespan(app: FastAPI):
         print("✅ Database initialized")
     except Exception as e:
         print(f"❌ Database initialization failed: {e}")
+        traceback.print_exc()
         raise
 
-    # NOTE: embedding model is loaded lazily on first use to stay within
+    # NOTE: embedding model loads lazily on first use to stay within
     # the 512 MB RAM limit on Render's free tier.
+    print("✅ Startup complete")
 
     yield
     # Shutdown (nothing to clean up)
