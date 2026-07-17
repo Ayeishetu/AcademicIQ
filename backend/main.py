@@ -52,7 +52,7 @@ app = FastAPI(
 
 # CORS — allow the Vercel frontend origin (set via FRONTEND_URL env var)
 # plus localhost origins for local development.
-_frontend_url = settings.frontend_url  # e.g. https://academiciq.vercel.app
+_frontend_url = settings.frontend_url.rstrip("/")  # strip accidental trailing slash
 _allowed_origins = list({
     _frontend_url,
     "http://localhost:5173",
