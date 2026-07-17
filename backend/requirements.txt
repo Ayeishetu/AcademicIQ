@@ -5,17 +5,17 @@ python-jose[cryptography]==3.3.0
 passlib[bcrypt]==1.7.4
 sqlalchemy==2.0.41
 aiosqlite==0.21.0
-pydantic==2.11.4
-pydantic-settings==2.9.1
+pydantic>=2.11.4
+pydantic-settings>=2.9.1
 email-validator==2.3.0
 
 # RAG / AI
-tiktoken==0.9.0
+tiktoken>=0.9.0
 sentence-transformers==3.4.1
 anthropic==0.49.0
 
 # Vector DB
-chromadb==0.4.24
+chromadb>=0.6.3
 
 # Document parsing
 PyMuPDF==1.25.5
