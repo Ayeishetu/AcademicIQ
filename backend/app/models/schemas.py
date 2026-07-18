@@ -2,6 +2,8 @@ from datetime import datetime
 from typing import Optional
 from pydantic import BaseModel, EmailStr, field_validator
 
+from app.core.config import get_settings
+
 
 # ── Auth ───────────────────────────────────────────────────────────────────────
 
@@ -12,9 +14,10 @@ class UserRegister(BaseModel):
 
     @field_validator("password")
     @classmethod
-    def password_min_length(cls, v: str) -> str:
-        if len(v) < 6:
-            raise ValueError("Password must be at least 6 characters")
+    def password_length(cls, v: str) -> str:
+        max_length = get_settings().password_max_length
+        if len(v) > max_length:
+            raise ValueError(f"Password must be up to {max_length} characters")
         return v
 
 

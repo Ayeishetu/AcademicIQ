@@ -7,6 +7,7 @@ class Settings(BaseSettings):
     secret_key: str = "dev-secret-change-in-production"
     algorithm: str = "HS256"
     access_token_expire_minutes: int = 10080  # 7 days
+    password_max_length: int = 8
 
     # Database
     database_url: str = "sqlite+aiosqlite:///./academic_rag.db"

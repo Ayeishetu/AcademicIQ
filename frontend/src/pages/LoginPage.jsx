@@ -15,6 +15,10 @@ export default function LoginPage() {
   const handleSubmit = async (e) => {
     e.preventDefault()
     setError('')
+    if (form.password.length > 8) {
+      setError('Password must be up to 8 characters')
+      return
+    }
     setLoading(true)
     try {
       const { data } = await authApi.login(form)
@@ -54,7 +58,7 @@ export default function LoginPage() {
               <input
                 type="email"
                 className="input"
-                placeholder="you@university.edu"
+                placeholder="you@email.com"
                 value={form.email}
                 onChange={(e) => setForm({ ...form, email: e.target.value })}
                 required
@@ -70,9 +74,10 @@ export default function LoginPage() {
                 <input
                   type={showPassword ? 'text' : 'password'}
                   className="input pr-10"
-                  placeholder="••••••••"
+                  placeholder="Up to 8 characters"
                   value={form.password}
-                  onChange={(e) => setForm({ ...form, password: e.target.value })}
+                  maxLength={8}
+                  onChange={(e) => setForm({ ...form, password: e.target.value.slice(0, 8) })}
                   required
                 />
                 <button
@@ -83,6 +88,7 @@ export default function LoginPage() {
                   {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
               </div>
+              <div className="mt-1 text-xs text-gray-500 text-right">{form.password.length}/8</div>
             </div>
 
             <button type="submit" className="btn-primary w-full py-2.5" disabled={loading}>

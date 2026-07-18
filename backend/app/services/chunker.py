@@ -11,6 +11,45 @@ settings = get_settings()
 _tokenizer = tiktoken.get_encoding("cl100k_base")
 
 
+def chunk_text(
+    text: str,
+    chunk_size: int = None,
+    chunk_overlap: int = None,
+) -> list[str]:
+    """
+    Split a single text block into overlapping token-based chunks and return
+    only the chunk strings.
+    """
+    if text is None:
+        return []
+
+    text = text.strip()
+    if not text:
+        return []
+
+    chunk_size = chunk_size or settings.chunk_size
+    chunk_overlap = chunk_overlap or settings.chunk_overlap
+    chunk_overlap = min(chunk_overlap, max(chunk_size - 1, 0))
+
+    tokens = _tokenizer.encode(text)
+    start = 0
+    chunks = []
+
+    while start < len(tokens):
+        end = min(start + chunk_size, len(tokens))
+        chunk_tokens = tokens[start:end]
+        chunk_value = _tokenizer.decode(chunk_tokens).strip()
+
+        if chunk_value:
+            chunks.append(chunk_value)
+
+        if end == len(tokens):
+            break
+        start += chunk_size - chunk_overlap
+
+    return chunks
+
+
 def chunk_pages(
     pages: list[dict],
     chunk_size: int = None,

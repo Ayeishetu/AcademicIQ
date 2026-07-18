@@ -13,6 +13,7 @@ A full-stack AI-powered platform for students to upload lecture notes and past e
 - **LLM**: Anthropic API — `claude-sonnet-4-5` (requires `ANTHROPIC_API_KEY`)
 - **File Parsing**: PyMuPDF (PDF), python-docx (DOCX), plain text (TXT)
 - **Auth**: JWT-based auth (HS256, 7-day tokens)
+- **Password policy**: account passwords are limited to 8 characters
 
 ## Project Structure
 
@@ -69,6 +70,7 @@ npm run dev
 ```
 SECRET_KEY=your_jwt_secret
 ACCESS_TOKEN_EXPIRE_MINUTES=10080
+PASSWORD_MAX_LENGTH=8
 DATABASE_URL=sqlite+aiosqlite:///./academic_rag.db
 CHROMA_PERSIST_DIR=./chroma_db
 UPLOAD_DIR=./uploads

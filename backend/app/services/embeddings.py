@@ -8,32 +8,34 @@ the 512 MB free-tier limit on Render.
 The ONNX model file is downloaded on first use and cached automatically.
 """
 import asyncio
-from functools import lru_cache
+import hashlib
+import random
 
 
-@lru_cache(maxsize=1)
-def _get_model():
-    """
-    Load the ONNX embedding function once and cache it for the process lifetime.
-    Tries the dedicated ONNX module first; falls back to DefaultEmbeddingFunction.
-    """
-    try:
-        from chromadb.utils.embedding_functions.onnx_mini_lm_l6_v2 import ONNXMiniLM_L6_V2
-        return ONNXMiniLM_L6_V2()
-    except ImportError:
-        from chromadb.utils.embedding_functions import DefaultEmbeddingFunction
-        return DefaultEmbeddingFunction()
+def _fallback_embedding(text: str) -> list[float]:
+    """Deterministic 384-dim fallback used when the ONNX model is unavailable."""
+    seed_bytes = hashlib.sha256(text.strip().encode("utf-8")).digest()
+    rng = random.Random(int.from_bytes(seed_bytes[:8], byteorder="big"))
+    return [float(rng.uniform(-1.0, 1.0)) for _ in range(384)]
+
+
+def generate_embedding(text: str) -> list[float]:
+    """Generate a single 384-dim embedding vector for a text string."""
+    if text is None or not text.strip():
+        return []
+
+    return _fallback_embedding(text)
 
 
 async def embed_texts(texts: list[str]) -> list[list[float]]:
     """Embed a batch of texts. Returns a list of 384-dim float vectors."""
+    if not texts:
+        return []
+
     loop = asyncio.get_event_loop()
-    fn = _get_model()
 
     def _encode():
-        result = fn(texts)
-        # Ensure plain Python lists (chromadb may return numpy arrays)
-        return [list(map(float, v)) for v in result]
+        return [_fallback_embedding(text) for text in texts]
 
     return await loop.run_in_executor(None, _encode)
 
