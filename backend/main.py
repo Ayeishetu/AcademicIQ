@@ -1,5 +1,6 @@
 import os
 import traceback
+import asyncio
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
@@ -27,17 +28,24 @@ async def lifespan(app: FastAPI):
         print(f"⚠️  Directory creation warning: {e}")
 
     # Database initialisation
+    # Run DB init in background so the server can bind to the PORT quickly.
+    async def _init_db_bg():
+        try:
+            await init_db()
+            print("✅ Database initialized")
+        except Exception as e:
+            print(f"❌ Database initialization failed: {e}")
+            traceback.print_exc()
+
     try:
-        await init_db()
-        print("✅ Database initialized")
+        asyncio.create_task(_init_db_bg())
     except Exception as e:
-        print(f"❌ Database initialization failed: {e}")
+        print(f"⚠️ Failed to start background DB init: {e}")
         traceback.print_exc()
-        raise
 
     # NOTE: embedding model loads lazily on first use to stay within
     # the 512 MB RAM limit on Render's free tier.
-    print("✅ Startup complete")
+    print("✅ Startup complete (DB init running in background)")
 
     yield
     # Shutdown (nothing to clean up)
