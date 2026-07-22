@@ -16,6 +16,34 @@ from app.core.config import get_settings
 settings = get_settings()
 
 
+def _get_deploy_commit() -> str:
+    # Prefer an explicit env var (set this in Render if you want guaranteed value)
+    commit = os.environ.get("DEPLOY_COMMIT")
+    if commit:
+        return commit
+
+    # Try reading from .git if available
+    try:
+        git_dir = os.path.join(os.path.dirname(__file__), "..", ".git")
+        git_dir = os.path.normpath(git_dir)
+        head_path = os.path.join(git_dir, "HEAD")
+        if os.path.exists(head_path):
+            with open(head_path, "r", encoding="utf-8") as f:
+                ref = f.read().strip()
+            if ref.startswith("ref:"):
+                ref_path = ref.split(" ", 1)[1]
+                ref_file = os.path.join(git_dir, ref_path)
+                if os.path.exists(ref_file):
+                    with open(ref_file, "r", encoding="utf-8") as f:
+                        return f.read().strip()
+            else:
+                return ref
+    except Exception:
+        pass
+
+    return "unknown"
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Startup
@@ -84,6 +112,12 @@ app.include_router(share.router, prefix="/api")
 @app.get("/api/health")
 async def health():
     return {"status": "ok", "version": "1.0.0"}
+
+
+@app.get("/_version")
+async def version():
+    """Return the deployed git commit or 'unknown'."""
+    return {"commit": _get_deploy_commit()}
 
 
 if __name__ == "__main__":
