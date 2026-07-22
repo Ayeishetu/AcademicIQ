@@ -69,7 +69,9 @@ async def get_documents_by_user(
     if course:
         query = query.where(Document.course == course)
     if course_code:
-        query = query.where(Document.course_code == course_code)
+        course_code = course_code.strip()
+        if course_code:
+            query = query.where(Document.course_code == course_code)
     query = query.order_by(Document.created_at.desc())
     result = await db.execute(query)
     return list(result.scalars().all())
@@ -122,6 +124,7 @@ async def get_course_codes(db: AsyncSession, user_id: Optional[int] = None) -> l
         query = query.where(Document.user_id == user_id)
     else:
         query = query.where(Document.visibility == "public")
+    query = query.where(Document.course_code != "")
     result = await db.execute(query)
     return [row[0] for row in result.all()]
 

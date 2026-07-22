@@ -54,7 +54,12 @@ export const documentsApi = {
       headers: { 'Content-Type': 'multipart/form-data' },
     })
   },
-  list: (courseCode) => api.get('/documents/', { params: courseCode ? { course_code: courseCode } : {} }),
+  list: (courseCode) => {
+    const params = {}
+    const trimmed = courseCode?.trim()
+    if (trimmed) params.course_code = trimmed
+    return api.get('/documents/', { params })
+  },
   courses: () => api.get('/documents/courses'),
   delete: (id) => api.delete(`/documents/${id}`),
 }
