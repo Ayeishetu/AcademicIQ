@@ -60,11 +60,16 @@ async def create_document(
 
 
 async def get_documents_by_user(
-    db: AsyncSession, user_id: int, course: Optional[str] = None
+    db: AsyncSession,
+    user_id: int,
+    course: Optional[str] = None,
+    course_code: Optional[str] = None,
 ) -> list[Document]:
     query = select(Document).where(Document.user_id == user_id)
     if course:
         query = query.where(Document.course == course)
+    if course_code:
+        query = query.where(Document.course_code == course_code)
     query = query.order_by(Document.created_at.desc())
     result = await db.execute(query)
     return list(result.scalars().all())
@@ -111,10 +116,13 @@ async def get_courses_by_user(db: AsyncSession, user_id: int) -> list[str]:
     return [row[0] for row in result.all()]
 
 
-async def get_course_codes(db: AsyncSession) -> list[str]:
-    result = await db.execute(
-        select(Document.course_code).where(Document.visibility == "public").distinct()
-    )
+async def get_course_codes(db: AsyncSession, user_id: Optional[int] = None) -> list[str]:
+    query = select(Document.course_code).distinct()
+    if user_id is not None:
+        query = query.where(Document.user_id == user_id)
+    else:
+        query = query.where(Document.visibility == "public")
+    result = await db.execute(query)
     return [row[0] for row in result.all()]
 
 

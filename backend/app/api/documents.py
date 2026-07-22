@@ -130,7 +130,9 @@ async def list_documents(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    docs = await crud.get_documents(db, course_code=course_code)
+    docs = await crud.get_documents_by_user(
+        db, user_id=current_user.id, course_code=course_code
+    )
     return docs
 
 
@@ -139,7 +141,7 @@ async def list_courses(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    return await crud.get_course_codes(db)
+    return await crud.get_course_codes(db, user_id=current_user.id)
 
 
 @router.get("/{doc_id}/download")
