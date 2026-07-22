@@ -1,5 +1,9 @@
-from pydantic_settings import BaseSettings
 from functools import lru_cache
+from pathlib import Path
+from pydantic import field_validator
+from pydantic_settings import BaseSettings
+
+BASE_DIR = Path(__file__).resolve().parents[2]
 
 
 class Settings(BaseSettings):
@@ -10,11 +14,11 @@ class Settings(BaseSettings):
     password_max_length: int = 64
 
     # Database
-    database_url: str = "sqlite+aiosqlite:///./academic_rag.db"
+    database_url: str = f"sqlite+aiosqlite:///{BASE_DIR / 'academic_rag.db'}"
 
     # Storage (relative paths — safe for both local and Render)
-    chroma_persist_dir: str = "./chroma_db"
-    upload_dir: str = "./uploads"
+    chroma_persist_dir: str = str(BASE_DIR / "chroma_db")
+    upload_dir: str = str(BASE_DIR / "uploads")
 
     # RAG settings
     chunk_size: int = 500          # tokens per chunk
