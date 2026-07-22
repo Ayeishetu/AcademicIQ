@@ -2,6 +2,9 @@ import os
 import tempfile
 import unittest
 
+from pptx import Presentation
+from pptx.util import Inches
+
 from app.services.chunker import chunk_text
 from app.services.document_parser import parse_document
 from app.services.embeddings import generate_embedding
@@ -34,6 +37,27 @@ class TestServiceBehavior(unittest.TestCase):
             self.assertGreaterEqual(len(pages), 1)
             self.assertIn("text", pages[0])
             self.assertIn("page", pages[0])
+        finally:
+            os.remove(tmp_path)
+
+    def test_parse_document_pptx_file(self):
+        prs = Presentation()
+        slide = prs.slides.add_slide(prs.slide_layouts[0])
+        title = slide.shapes.title
+        title.text = "Sample Slide"
+        body = slide.placeholders[1]
+        body.text = "Bullet point one\nBullet point two"
+
+        with tempfile.NamedTemporaryFile(suffix=".pptx", delete=False) as tmp:
+            tmp_path = tmp.name
+        try:
+            prs.save(tmp_path)
+            pages = parse_document(tmp_path)
+            self.assertIsInstance(pages, list)
+            self.assertGreaterEqual(len(pages), 1)
+            self.assertIn("text", pages[0])
+            self.assertIn("page", pages[0])
+            self.assertIn("Sample Slide", pages[0]["text"])
         finally:
             os.remove(tmp_path)
 

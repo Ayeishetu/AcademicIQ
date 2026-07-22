@@ -1,7 +1,9 @@
 """
-Parse PDF, DOCX, and TXT files into plain text with page metadata.
+Parse PDF, DOCX, TXT, and PPTX files into plain text with page metadata.
 """
 import io
+import shutil
+import subprocess
 from pathlib import Path
 from typing import Generator
 
@@ -17,6 +19,10 @@ def parse_document(file_path: str) -> list[dict]:
         return _parse_docx(file_path)
     elif ext == ".txt":
         return _parse_txt(file_path)
+    elif ext == ".pptx":
+        return _parse_pptx(file_path)
+    elif ext == ".ppt":
+        return _parse_ppt(file_path)
     else:
         raise ValueError(f"Unsupported file type: {ext}")
 
@@ -59,3 +65,66 @@ def _parse_txt(file_path: str) -> list[dict]:
         if chunk:
             pages.append({"page": (i // page_size) + 1, "text": chunk})
     return pages or [{"page": 1, "text": ""}]
+
+
+def _parse_pptx(file_path: str) -> list[dict]:
+    from pptx import Presentation
+
+    presentation = Presentation(file_path)
+    pages = []
+    for slide_num, slide in enumerate(presentation.slides, start=1):
+        text_lines = []
+        for shape in slide.shapes:
+            if shape.has_table:
+                for row in shape.table.rows:
+                    for cell in row.cells:
+                        cell_text = cell.text.strip()
+                        if cell_text:
+                            text_lines.append(cell_text)
+            elif shape.has_text_frame:
+                shape_text = shape.text.strip()
+                if shape_text:
+                    text_lines.append(shape_text)
+
+        if getattr(slide, "has_notes_slide", False) and slide.has_notes_slide:
+            notes_text = slide.notes_slide.notes_text_frame.text.strip()
+            if notes_text:
+                text_lines.append(notes_text)
+
+        if text_lines:
+            pages.append({"page": slide_num, "text": "\n".join(text_lines)})
+
+    return pages or [{"page": 1, "text": ""}]
+
+
+def _parse_ppt(file_path: str) -> list[dict]:
+    if not shutil.which("soffice"):
+        raise ValueError(
+            "Unsupported file type: .ppt. Please convert to .pptx before uploading."
+        )
+
+    output_dir = Path(file_path).parent
+    output_path = output_dir / f"{Path(file_path).stem}.pptx"
+    try:
+        subprocess.run(
+            [
+                "soffice",
+                "--headless",
+                "--convert-to",
+                "pptx",
+                "--outdir",
+                str(output_dir),
+                str(file_path),
+            ],
+            capture_output=True,
+            text=True,
+            check=True,
+        )
+        if not output_path.exists():
+            raise ValueError("Failed to convert PPT to PPTX for parsing.")
+        return _parse_pptx(str(output_path))
+    finally:
+        try:
+            output_path.unlink(missing_ok=True)
+        except OSError:
+            pass

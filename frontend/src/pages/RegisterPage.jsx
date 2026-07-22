@@ -15,8 +15,8 @@ export default function RegisterPage() {
   const handleSubmit = async (e) => {
     e.preventDefault()
     setError('')
-    if (form.password.length > 8) {
-      setError('Password must be up to 8 characters')
+    if (form.password.length < 6) {
+      setError('Password must be at least 6 characters')
       return
     }
     setLoading(true)
@@ -25,7 +25,12 @@ export default function RegisterPage() {
       login(data.access_token, data.user)
       navigate('/chat')
     } catch (err) {
-      setError(err.response?.data?.detail || 'Registration failed. Please try again.')
+      const detail = err.response?.data?.detail
+      if (Array.isArray(detail)) {
+        setError(detail.map((item) => item.msg || JSON.stringify(item)).join(' '))
+      } else {
+        setError(detail || 'Registration failed. Please try again.')
+      }
     } finally {
       setLoading(false)
     }
@@ -83,10 +88,9 @@ export default function RegisterPage() {
                 <input
                   type={showPassword ? 'text' : 'password'}
                   className="input pr-10"
-                  placeholder="Up to 8 characters"
+                  placeholder="Min. 6 characters"
                   value={form.password}
-                  maxLength={8}
-                  onChange={(e) => setForm({ ...form, password: e.target.value.slice(0, 8) })}
+                  onChange={(e) => setForm({ ...form, password: e.target.value })}
                   required
                 />
                 <button
@@ -97,7 +101,6 @@ export default function RegisterPage() {
                   {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
               </div>
-              <div className="mt-1 text-xs text-gray-500 text-right">{form.password.length}/8</div>
             </div>
 
             <button type="submit" className="btn-primary w-full py-2.5" disabled={loading}>
@@ -111,6 +114,7 @@ export default function RegisterPage() {
               Sign in
             </Link>
           </p>
+          
         </div>
       </div>
     </div>

@@ -106,7 +106,8 @@ async def generate_answer(
             sources.append(
                 {
                     "filename": meta["original_filename"],
-                    "course": meta["course"],
+                    "course": meta.get("course", ""),
+                    "course_code": meta.get("course_code", ""),
                     "page": meta["page"],
                     "doc_id": meta["doc_id"],
                 }

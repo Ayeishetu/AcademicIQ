@@ -23,6 +23,7 @@ async def ingest_document(
     filename: str,
     original_filename: str,
     course: str,
+    course_code: str,
     user_id: int,
 ) -> int:
     """
@@ -49,6 +50,7 @@ async def ingest_document(
         filename=filename,
         original_filename=original_filename,
         course=course,
+        course_code=course_code,
         chunks=chunks,
         embeddings=embeddings,
     )
@@ -59,7 +61,7 @@ async def ingest_document(
 async def query_rag(
     question: str,
     user_id: int,
-    course: str | None = None,
+    course_code: str | None = None,
     conversation_history: list[dict] | None = None,
     top_k: int | None = None,
 ) -> dict:
@@ -75,7 +77,7 @@ async def query_rag(
         user_id=user_id,
         query_embedding=query_embedding,
         top_k=top_k or settings.top_k_results,
-        course=course,
+        course_code=course_code,
     )
 
     if not chunks:

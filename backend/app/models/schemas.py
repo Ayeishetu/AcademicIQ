@@ -47,8 +47,10 @@ class DocumentOut(BaseModel):
     id: int
     original_filename: str
     course: str
+    course_code: str
     file_type: str
     chunk_count: int
+    user_id: int
     created_at: datetime
 
     model_config = {"from_attributes": True}
@@ -63,7 +65,7 @@ class ChatMessage(BaseModel):
 
 class QueryRequest(BaseModel):
     question: str
-    course: Optional[str] = None
+    course_code: Optional[str] = None
     conversation_history: Optional[list[ChatMessage]] = None
     session_id: Optional[int] = None
 
@@ -71,6 +73,7 @@ class QueryRequest(BaseModel):
 class SourceReference(BaseModel):
     filename: str
     course: str
+    course_code: str
     page: int
     doc_id: int
 
@@ -108,6 +111,7 @@ class ChatMessageOut(BaseModel):
 class SharedMessageSource(BaseModel):
     filename: str
     course: str
+    course_code: str
     page: int
     doc_id: int
 

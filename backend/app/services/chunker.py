@@ -1,14 +1,35 @@
 """
 Split document pages into overlapping token-based chunks.
 """
-import tiktoken
+import re
+
+try:
+    import tiktoken
+except ModuleNotFoundError:  # pragma: no cover - exercised in lean environments
+    tiktoken = None
 
 from app.core.config import get_settings
 
 settings = get_settings()
 
-# Use cl100k_base tokenizer (works for both OpenAI and Anthropic models)
-_tokenizer = tiktoken.get_encoding("cl100k_base")
+# Prefer the OpenAI tokenizer when available; otherwise fall back to a
+# whitespace-based tokenizer so the service still works in minimal test envs.
+if tiktoken is not None:
+    _tokenizer = tiktoken.get_encoding("cl100k_base")
+else:
+    _tokenizer = None
+
+
+def _encode_tokens(text: str) -> list[str]:
+    if _tokenizer is not None:
+        return _tokenizer.encode(text)
+    return re.findall(r"\S+", text)
+
+
+def _decode_tokens(tokens: list[str]) -> str:
+    if _tokenizer is not None:
+        return _tokenizer.decode(tokens)
+    return " ".join(tokens)
 
 
 def chunk_text(
@@ -31,14 +52,14 @@ def chunk_text(
     chunk_overlap = chunk_overlap or settings.chunk_overlap
     chunk_overlap = min(chunk_overlap, max(chunk_size - 1, 0))
 
-    tokens = _tokenizer.encode(text)
+    tokens = _encode_tokens(text)
     start = 0
     chunks = []
 
     while start < len(tokens):
         end = min(start + chunk_size, len(tokens))
         chunk_tokens = tokens[start:end]
-        chunk_value = _tokenizer.decode(chunk_tokens).strip()
+        chunk_value = _decode_tokens(chunk_tokens).strip()
 
         if chunk_value:
             chunks.append(chunk_value)
@@ -69,13 +90,13 @@ def chunk_pages(
         page_num = page_data["page"]
         text = page_data["text"]
 
-        tokens = _tokenizer.encode(text)
+        tokens = _encode_tokens(text)
         start = 0
 
         while start < len(tokens):
             end = min(start + chunk_size, len(tokens))
             chunk_tokens = tokens[start:end]
-            chunk_text = _tokenizer.decode(chunk_tokens).strip()
+            chunk_text = _decode_tokens(chunk_tokens).strip()
 
             if chunk_text:
                 chunks.append(

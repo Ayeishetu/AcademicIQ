@@ -37,15 +37,19 @@ async def create_document(
     filename: str,
     original_filename: str,
     course: str,
+    course_code: str,
     file_type: str,
     chunk_count: int,
     user_id: int,
+    visibility: str = "public",
 ) -> Document:
     doc = Document(
         filename=filename,
         original_filename=original_filename,
         course=course,
+        course_code=course_code,
         file_type=file_type,
+        visibility=visibility,
         chunk_count=chunk_count,
         user_id=user_id,
     )
@@ -64,6 +68,24 @@ async def get_documents_by_user(
     query = query.order_by(Document.created_at.desc())
     result = await db.execute(query)
     return list(result.scalars().all())
+
+
+async def get_documents(
+    db: AsyncSession, course_code: Optional[str] = None
+) -> list[Document]:
+    query = select(Document).where(Document.visibility == "public")
+    if course_code:
+        query = query.where(Document.course_code == course_code)
+    query = query.order_by(Document.created_at.desc())
+    result = await db.execute(query)
+    return list(result.scalars().all())
+
+
+async def get_public_document_by_id(db: AsyncSession, doc_id: int) -> Optional[Document]:
+    result = await db.execute(
+        select(Document).where(Document.id == doc_id, Document.visibility == "public")
+    )
+    return result.scalar_one_or_none()
 
 
 async def get_document_by_id(db: AsyncSession, doc_id: int, user_id: int) -> Optional[Document]:
@@ -85,6 +107,13 @@ async def delete_document(db: AsyncSession, doc_id: int, user_id: int) -> bool:
 async def get_courses_by_user(db: AsyncSession, user_id: int) -> list[str]:
     result = await db.execute(
         select(Document.course).where(Document.user_id == user_id).distinct()
+    )
+    return [row[0] for row in result.all()]
+
+
+async def get_course_codes(db: AsyncSession) -> list[str]:
+    result = await db.execute(
+        select(Document.course_code).where(Document.visibility == "public").distinct()
     )
     return [row[0] for row in result.all()]
 

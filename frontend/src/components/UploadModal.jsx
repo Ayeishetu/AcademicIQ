@@ -2,12 +2,13 @@ import { useState, useRef } from 'react'
 import { X, Upload, FileText, Loader2 } from 'lucide-react'
 import { documentsApi } from '../services/api'
 
-const ALLOWED_TYPES = ['.pdf', '.docx', '.txt']
+const ALLOWED_TYPES = ['.pdf', '.docx', '.txt', '.ppt', '.pptx']
 const MAX_SIZE_MB = 500
 
 export default function UploadModal({ onClose, onSuccess }) {
   const [file, setFile] = useState(null)
   const [course, setCourse] = useState('')
+  const [courseCode, setCourseCode] = useState('')
   const [dragOver, setDragOver] = useState(false)
   const [uploading, setUploading] = useState(false)
   const [error, setError] = useState('')
@@ -16,7 +17,7 @@ export default function UploadModal({ onClose, onSuccess }) {
   const validateFile = (f) => {
     const ext = '.' + f.name.split('.').pop().toLowerCase()
     if (!ALLOWED_TYPES.includes(ext)) {
-      return `Unsupported file type. Please upload PDF, DOCX, or TXT.`
+      return `Unsupported file type. Please upload PDF, DOCX, TXT, PPT, or PPTX.`
     }
     if (f.size > MAX_SIZE_MB * 1024 * 1024) {
       return `File exceeds ${MAX_SIZE_MB} MB limit.`
@@ -43,11 +44,11 @@ export default function UploadModal({ onClose, onSuccess }) {
 
   const handleSubmit = async (e) => {
     e.preventDefault()
-    if (!file || !course.trim()) return
+    if (!file || !course.trim() || !courseCode.trim()) return
     setUploading(true)
     setError('')
     try {
-      const { data } = await documentsApi.upload(file, course.trim())
+      const { data } = await documentsApi.upload(file, course.trim(), courseCode.trim())
       onSuccess(data)
       onClose()
     } catch (err) {
@@ -91,7 +92,7 @@ export default function UploadModal({ onClose, onSuccess }) {
             <input
               ref={fileInputRef}
               type="file"
-              accept=".pdf,.docx,.txt"
+              accept=".pdf,.docx,.txt,.ppt,.pptx"
               className="hidden"
               onChange={(e) => e.target.files[0] && handleFileSelect(e.target.files[0])}
             />
@@ -116,12 +117,11 @@ export default function UploadModal({ onClose, onSuccess }) {
                 <p className="text-sm font-medium text-gray-700">
                   Drop your file here or click to browse
                 </p>
-                <p className="text-xs text-gray-400">PDF, DOCX, TXT · Max {MAX_SIZE_MB} MB</p>
+                <p className="text-xs text-gray-400">PDF, DOCX, TXT, PPT, PPTX · Max {MAX_SIZE_MB} MB</p>
               </div>
             )}
           </div>
 
-          {/* Course name */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1.5">
               Course name <span className="text-red-500">*</span>
@@ -135,7 +135,24 @@ export default function UploadModal({ onClose, onSuccess }) {
               required
             />
             <p className="text-xs text-gray-400 mt-1">
-              Used to filter questions by course
+              Human-readable course title for the document.
+            </p>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1.5">
+              Course code <span className="text-red-500">*</span>
+            </label>
+            <input
+              type="text"
+              className="input"
+              placeholder="e.g. CSC 302"
+              value={courseCode}
+              onChange={(e) => setCourseCode(e.target.value)}
+              required
+            />
+            <p className="text-xs text-gray-400 mt-1">
+              Shared course code used for browsing and filtering.
             </p>
           </div>
 
@@ -145,7 +162,7 @@ export default function UploadModal({ onClose, onSuccess }) {
             </button>
             <button
               type="submit"
-              disabled={!file || !course.trim() || uploading}
+              disabled={!file || !course.trim() || !courseCode.trim() || uploading}
               className="btn-primary flex-1 flex items-center justify-center gap-2"
             >
               {uploading ? (

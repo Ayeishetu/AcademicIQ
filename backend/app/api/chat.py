@@ -119,7 +119,7 @@ async def query(
     result = await query_rag(
         question=payload.question,
         user_id=current_user.id,
-        course=payload.course,
+        course_code=payload.course_code,
         conversation_history=history,
     )
 

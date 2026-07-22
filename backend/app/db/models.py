@@ -29,7 +29,9 @@ class Document(Base):
     filename: Mapped[str] = mapped_column(String(500), nullable=False)
     original_filename: Mapped[str] = mapped_column(String(500), nullable=False)
     course: Mapped[str] = mapped_column(String(255), nullable=False)
+    course_code: Mapped[str] = mapped_column(String(255), nullable=False)
     file_type: Mapped[str] = mapped_column(String(50), nullable=False)
+    visibility: Mapped[str] = mapped_column(String(50), nullable=False, default="public")
     chunk_count: Mapped[int] = mapped_column(Integer, default=0)
     user_id: Mapped[int] = mapped_column(Integer, ForeignKey("users.id"), nullable=False)
     created_at: Mapped[datetime] = mapped_column(

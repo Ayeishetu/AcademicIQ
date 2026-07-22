@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
+import { useAuth } from '../store/authStore'
 import {
   Upload,
   FileText,
@@ -34,9 +35,10 @@ function FileTypeIcon({ type }) {
 }
 
 export default function DashboardPage() {
+  const { user } = useAuth()
   const [documents, setDocuments] = useState([])
   const [courses, setCourses] = useState([])
-  const [selectedCourse, setSelectedCourse] = useState(null)
+  const [selectedCourseCode, setSelectedCourseCode] = useState(null)
   const [loading, setLoading] = useState(true)
   const [showUpload, setShowUpload] = useState(false)
   const [deletingId, setDeletingId] = useState(null)
@@ -45,7 +47,7 @@ export default function DashboardPage() {
     setLoading(true)
     try {
       const [docsRes, coursesRes] = await Promise.all([
-        documentsApi.list(selectedCourse),
+        documentsApi.list(selectedCourseCode),
         documentsApi.courses(),
       ])
       setDocuments(docsRes.data)
@@ -55,7 +57,7 @@ export default function DashboardPage() {
     } finally {
       setLoading(false)
     }
-  }, [selectedCourse])
+  }, [selectedCourseCode])
 
   useEffect(() => { fetchData() }, [fetchData])
 
@@ -67,7 +69,7 @@ export default function DashboardPage() {
       setDocuments((prev) => prev.filter((d) => d.id !== doc.id))
       const { data } = await documentsApi.courses()
       setCourses(data)
-      if (selectedCourse && !data.includes(selectedCourse)) setSelectedCourse(null)
+      if (selectedCourseCode && !data.includes(selectedCourseCode)) setSelectedCourseCode(null)
     } catch {
       alert('Failed to delete document. Please try again.')
     } finally {
@@ -81,8 +83,9 @@ export default function DashboardPage() {
   }
 
   const grouped = documents.reduce((acc, doc) => {
-    if (!acc[doc.course]) acc[doc.course] = []
-    acc[doc.course].push(doc)
+    const key = doc.course_code || doc.course
+    if (!acc[key]) acc[key] = []
+    acc[key].push(doc)
     return acc
   }, {})
 
@@ -119,8 +122,8 @@ export default function DashboardPage() {
         {courses.length > 0 && (
           <CourseFilter
             courses={courses}
-            selected={selectedCourse}
-            onChange={setSelectedCourse}
+            selected={selectedCourseCode}
+            onChange={setSelectedCourseCode}
           />
         )}
       </div>
@@ -217,18 +220,20 @@ function CourseGroup({ course, docs, onDelete, deletingId }) {
                   )}
                 </div>
               </div>
-              <button
-                onClick={() => onDelete(doc)}
-                disabled={deletingId === doc.id}
-                className="p-2 text-gray-400 hover:text-red-500 transition-colors disabled:opacity-50 flex-shrink-0"
-                title="Delete document"
-              >
-                {deletingId === doc.id ? (
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                ) : (
-                  <Trash2 className="w-4 h-4" />
-                )}
-              </button>
+              {user?.id === doc.user_id && (
+                <button
+                  onClick={() => onDelete(doc)}
+                  disabled={deletingId === doc.id}
+                  className="p-2 text-gray-400 hover:text-red-500 transition-colors disabled:opacity-50 flex-shrink-0"
+                  title="Delete document"
+                >
+                  {deletingId === doc.id ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <Trash2 className="w-4 h-4" />
+                  )}
+                </button>
+              )}
             </div>
           ))}
         </div>

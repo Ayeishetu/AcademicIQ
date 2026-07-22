@@ -45,15 +45,16 @@ export const authApi = {
 // ── Documents ─────────────────────────────────────────────────────────────────
 
 export const documentsApi = {
-  upload: (file, course) => {
+  upload: (file, course, courseCode) => {
     const form = new FormData()
     form.append('file', file)
     form.append('course', course)
+    form.append('course_code', courseCode)
     return api.post('/documents/upload', form, {
       headers: { 'Content-Type': 'multipart/form-data' },
     })
   },
-  list: (course) => api.get('/documents/', { params: course ? { course } : {} }),
+  list: (courseCode) => api.get('/documents/', { params: courseCode ? { course_code: courseCode } : {} }),
   courses: () => api.get('/documents/courses'),
   delete: (id) => api.delete(`/documents/${id}`),
 }
@@ -64,7 +65,7 @@ export const chatApi = {
   query: (question, course, conversationHistory, sessionId) =>
     api.post('/chat/query', {
       question,
-      course: course || null,
+      course_code: course || null,
       conversation_history: conversationHistory || null,
       session_id: sessionId || null,
     }),

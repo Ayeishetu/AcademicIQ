@@ -19,7 +19,7 @@ export default function ChatPage() {
   const [loading, setLoading] = useState(false)
   const [loadingSession, setLoadingSession] = useState(false)
   const [courses, setCourses] = useState([])
-  const [selectedCourse, setSelectedCourse] = useState(null)
+  const [selectedCourseCode, setSelectedCourseCode] = useState(null)
   const [shareState, setShareState] = useState('idle')
   const [shareLink, setShareLink] = useState('')
   const [currentSessionId, setCurrentSessionId] = useState(null)
@@ -96,7 +96,7 @@ export default function ChatPage() {
 
     try {
       const history = buildHistory()
-      const { data } = await chatApi.query(question, selectedCourse, history, currentSessionId)
+      const { data } = await chatApi.query(question, selectedCourseCode, history, currentSessionId)
 
       if (!currentSessionId) {
         setCurrentSessionId(data.session_id)
@@ -254,8 +254,8 @@ export default function ChatPage() {
         {courses.length > 0 && (
           <CourseFilter
             courses={courses}
-            selected={selectedCourse}
-            onChange={setSelectedCourse}
+            selected={selectedCourseCode}
+            onChange={setSelectedCourseCode}
           />
         )}
 
@@ -298,9 +298,9 @@ export default function ChatPage() {
 
       {/* ── Input ── */}
       <div className="bg-white border-t border-gray-200 px-3 md:px-6 py-3">
-        {selectedCourse && (
+        {selectedCourseCode && (
           <div className="text-xs text-primary-600 mb-1.5 font-medium">
-            Searching in: {selectedCourse}
+            Searching in: {selectedCourseCode}
           </div>
         )}
         <form onSubmit={handleSubmit} className="flex gap-2">

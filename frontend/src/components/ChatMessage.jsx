@@ -60,7 +60,7 @@ export default function ChatMessage({ message }) {
                 <FileText className="w-3 h-3 flex-shrink-0" />
                 <span className="font-medium truncate flex-1 min-w-0">{src.filename}</span>
                 <span className="text-blue-400 flex-shrink-0">·</span>
-                <span className="text-blue-500 truncate max-w-[60px] flex-shrink-0">{src.course}</span>
+                <span className="text-blue-500 truncate max-w-[60px] flex-shrink-0">{src.course_code || src.course}</span>
                 <span className="text-blue-400 flex-shrink-0">·</span>
                 <span className="flex-shrink-0">p.{src.page}</span>
               </div>

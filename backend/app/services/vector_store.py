@@ -39,6 +39,7 @@ def add_chunks(
     filename: str,
     original_filename: str,
     course: str,
+    course_code: str,
     chunks: list[dict],
     embeddings: list[list[float]],
 ) -> None:
@@ -53,6 +54,7 @@ def add_chunks(
             "filename": filename,
             "original_filename": original_filename,
             "course": course,
+            "course_code": course_code,
             "page": c["page"],
             "chunk_index": c["chunk_index"],
             "token_count": c["token_count"],
@@ -72,11 +74,11 @@ def query_chunks(
     user_id: int,
     query_embedding: list[float],
     top_k: int = None,
-    course: Optional[str] = None,
+    course_code: Optional[str] = None,
 ) -> list[dict]:
     """
     Retrieve top-k most similar chunks for a user.
-    Optionally filter by course.
+    Optionally filter by course code.
     """
     top_k = top_k or settings.top_k_results
     collection = get_or_create_collection(user_id)
@@ -87,7 +89,7 @@ def query_chunks(
 
     actual_k = min(top_k, count)
 
-    where = {"course": {"$eq": course}} if course else None
+    where = {"course_code": {"$eq": course_code}} if course_code else None
 
     kwargs: dict = dict(
         query_embeddings=[query_embedding],

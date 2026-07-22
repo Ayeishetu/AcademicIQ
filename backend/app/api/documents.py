@@ -3,6 +3,7 @@ import uuid
 from pathlib import Path
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile, status, BackgroundTasks
+from fastapi.responses import FileResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import get_settings
@@ -16,7 +17,7 @@ from app.services.rag_pipeline import ingest_document, remove_document
 settings = get_settings()
 router = APIRouter(prefix="/documents", tags=["documents"])
 
-ALLOWED_EXTENSIONS = {".pdf", ".docx", ".txt"}
+ALLOWED_EXTENSIONS = {".pdf", ".docx", ".txt", ".ppt", ".pptx"}
 MAX_FILE_SIZE = 500 * 1024 * 1024  # 500 MB
 
 
@@ -25,6 +26,7 @@ async def upload_document(
     background_tasks: BackgroundTasks,
     file: UploadFile = File(...),
     course: str = Form(...),
+    course_code: str = Form(...),
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
@@ -33,7 +35,7 @@ async def upload_document(
     if ext not in ALLOWED_EXTENSIONS:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Unsupported file type '{ext}'. Allowed: PDF, DOCX, TXT",
+            detail=f"Unsupported file type '{ext}'. Allowed: PDF, DOCX, TXT, PPT, PPTX",
         )
 
     # Read file content
@@ -41,7 +43,7 @@ async def upload_document(
     if len(content) > MAX_FILE_SIZE:
         raise HTTPException(
             status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
-            detail="File exceeds 50 MB limit",
+            detail="File exceeds 500 MB limit",
         )
 
     # Save to disk
@@ -57,6 +59,7 @@ async def upload_document(
         filename=safe_filename,
         original_filename=file.filename,
         course=course.strip(),
+        course_code=course_code.strip(),
         file_type=ext.lstrip("."),
         chunk_count=0,
         user_id=current_user.id,
@@ -70,6 +73,7 @@ async def upload_document(
         filename=safe_filename,
         original_filename=file.filename,
         course=course.strip(),
+        course_code=course_code.strip(),
         user_id=current_user.id,
         db_url=settings.database_url,
     )
@@ -83,6 +87,7 @@ async def _run_ingestion(
     filename: str,
     original_filename: str,
     course: str,
+    course_code: str,
     user_id: int,
     db_url: str,
 ):
@@ -98,6 +103,7 @@ async def _run_ingestion(
             filename=filename,
             original_filename=original_filename,
             course=course,
+            course_code=course_code,
             user_id=user_id,
         )
         # Update chunk count in DB
@@ -120,11 +126,11 @@ async def _run_ingestion(
 
 @router.get("/", response_model=list[DocumentOut])
 async def list_documents(
-    course: str | None = None,
+    course_code: str | None = None,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    docs = await crud.get_documents_by_user(db, current_user.id, course=course)
+    docs = await crud.get_documents(db, course_code=course_code)
     return docs
 
 
@@ -133,7 +139,24 @@ async def list_courses(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    return await crud.get_courses_by_user(db, current_user.id)
+    return await crud.get_course_codes(db)
+
+
+@router.get("/{doc_id}/download")
+async def download_document(
+    doc_id: int,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    doc = await crud.get_public_document_by_id(db, doc_id)
+    if not doc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Document not found")
+
+    file_path = os.path.join(settings.upload_dir, doc.filename)
+    if not os.path.exists(file_path):
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="File not found")
+
+    return FileResponse(file_path, filename=doc.original_filename, media_type="application/octet-stream")
 
 
 @router.delete("/{doc_id}", status_code=status.HTTP_204_NO_CONTENT)
