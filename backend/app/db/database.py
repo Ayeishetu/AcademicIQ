@@ -11,10 +11,17 @@ connect_args = {}
 if settings.database_url.startswith("sqlite"):
     connect_args = {"check_same_thread": False}
 
+# Supabase transaction pooler requires prepared statements to be disabled
+engine_kwargs = {}
+if "pooler.supabase.com" in settings.database_url:
+    engine_kwargs["connect_args"] = {"prepared_statement_cache_size": 0}
+elif settings.database_url.startswith("sqlite"):
+    engine_kwargs["connect_args"] = {"check_same_thread": False}
+
 engine = create_async_engine(
     settings.database_url,
     echo=False,
-    connect_args=connect_args,
+    **engine_kwargs,
 )
 AsyncSessionLocal = async_sessionmaker(engine, expire_on_commit=False)
 
