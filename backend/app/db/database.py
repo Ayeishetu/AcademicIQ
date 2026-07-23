@@ -28,8 +28,8 @@ engine_kwargs: dict = {"echo": False}
 if _db_url.startswith("sqlite"):
     engine_kwargs["connect_args"] = {"check_same_thread": False}
 elif "supabase" in _db_url:
-    # Supabase pooler requires prepared statements disabled for asyncpg
-    engine_kwargs["connect_args"] = {"prepared_statement_cache_size": 0}
+    # Supabase transaction pooler (pgbouncer) requires prepared statements disabled
+    engine_kwargs["connect_args"] = {"statement_cache_size": 0}
     engine_kwargs["pool_pre_ping"] = True
 
 engine = create_async_engine(_db_url, **engine_kwargs)
