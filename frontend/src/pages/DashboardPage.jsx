@@ -45,6 +45,7 @@ function MyDocumentsTab({ user }) {
   const [documents, setDocuments] = useState([])
   const [courses, setCourses] = useState([])
   const [selectedCourseCode, setSelectedCourseCode] = useState(null)
+  const [openFolder, setOpenFolder] = useState(null) // course_code of open folder
   const [loading, setLoading] = useState(true)
   const [showUpload, setShowUpload] = useState(false)
   const [deletingId, setDeletingId] = useState(null)
@@ -76,6 +77,9 @@ function MyDocumentsTab({ user }) {
       const { data } = await documentsApi.courses()
       setCourses(data)
       if (selectedCourseCode && !data.includes(selectedCourseCode)) setSelectedCourseCode(null)
+      // Close folder if it becomes empty
+      const remaining = documents.filter((d) => d.id !== doc.id && (d.course_code || d.course) === openFolder)
+      if (remaining.length === 0) setOpenFolder(null)
     } catch {
       alert('Failed to delete document. Please try again.')
     } finally {
@@ -101,16 +105,21 @@ function MyDocumentsTab({ user }) {
       <div className="bg-white border-b border-gray-200 px-4 md:px-6 py-3">
         <div className="flex items-center justify-between mb-2">
           <div className="flex items-center gap-2">
+            {openFolder && (
+              <button
+                onClick={() => setOpenFolder(null)}
+                className="flex items-center gap-1.5 text-sm text-primary-600 hover:text-primary-800 font-medium"
+              >
+                <ChevronDown className="w-4 h-4 rotate-90" />
+                Back
+              </button>
+            )}
             <span className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full">
               {documents.length} {documents.length === 1 ? 'file' : 'files'}
             </span>
           </div>
           <div className="flex items-center gap-1.5 md:gap-2">
-            <button
-              onClick={fetchData}
-              className="p-2 text-gray-400 hover:text-gray-600 transition-colors"
-              title="Refresh"
-            >
+            <button onClick={fetchData} className="p-2 text-gray-400 hover:text-gray-600 transition-colors" title="Refresh">
               <RefreshCw className="w-4 h-4" />
             </button>
             <button
@@ -122,12 +131,8 @@ function MyDocumentsTab({ user }) {
             </button>
           </div>
         </div>
-        {courses.length > 0 && (
-          <CourseFilter
-            courses={courses}
-            selected={selectedCourseCode}
-            onChange={setSelectedCourseCode}
-          />
+        {!openFolder && courses.length > 0 && (
+          <CourseFilter courses={courses} selected={selectedCourseCode} onChange={setSelectedCourseCode} />
         )}
       </div>
 
@@ -146,24 +151,36 @@ function MyDocumentsTab({ user }) {
             <p className="text-sm text-gray-500 mb-4 max-w-xs">
               Upload your lecture notes, past exams, or study guides to start asking questions.
             </p>
-            <button
-              onClick={() => setShowUpload(true)}
-              className="btn-primary flex items-center gap-2"
-            >
+            <button onClick={() => setShowUpload(true)} className="btn-primary flex items-center gap-2">
               <Upload className="w-4 h-4" />
               Upload your first document
             </button>
           </div>
+        ) : openFolder ? (
+          /* ── Files grid inside a folder ── */
+          <div>
+            <h2 className="font-semibold text-gray-900 mb-4 text-sm">{openFolder}</h2>
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 md:gap-4">
+              {(grouped[openFolder] || []).map((doc) => (
+                <FileCard
+                  key={doc.id}
+                  doc={doc}
+                  user={user}
+                  onDelete={handleDelete}
+                  deletingId={deletingId}
+                />
+              ))}
+            </div>
+          </div>
         ) : (
-          <div className="space-y-4 md:space-y-6">
+          /* ── Folder grid ── */
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 md:gap-4">
             {Object.entries(grouped).map(([course, docs]) => (
-              <CourseGroup
+              <FolderCard
                 key={course}
                 course={course}
-                docs={docs}
-                onDelete={handleDelete}
-                deletingId={deletingId}
-                user={user}
+                count={docs.length}
+                onClick={() => setOpenFolder(course)}
               />
             ))}
           </div>
@@ -171,10 +188,7 @@ function MyDocumentsTab({ user }) {
       </div>
 
       {showUpload && (
-        <UploadModal
-          onClose={() => setShowUpload(false)}
-          onSuccess={handleUploadSuccess}
-        />
+        <UploadModal onClose={() => setShowUpload(false)} onSuccess={handleUploadSuccess} />
       )}
     </>
   )
@@ -337,6 +351,75 @@ export default function DashboardPage() {
 }
 
 // ── Shared sub-components ─────────────────────────────────────────────────────
+
+function FolderCard({ course, count, onClick }) {
+  return (
+    <button
+      onClick={onClick}
+      className="flex flex-col items-center p-4 bg-white border border-gray-200 rounded-2xl hover:border-primary-300 hover:bg-primary-50 transition-all shadow-sm text-left w-full"
+    >
+      <div className="w-14 h-14 mb-3 flex items-center justify-center">
+        {/* Folder icon */}
+        <svg viewBox="0 0 56 56" fill="none" className="w-14 h-14">
+          <rect x="2" y="16" width="52" height="34" rx="5" fill="#DBEAFE" />
+          <path d="M2 21C2 18.2 4.2 16 7 16h16l4 5h22c2.8 0 5 2.2 5 5v19c0 2.8-2.2 5-5 5H7c-2.8 0-5-2.2-5-5V21z" fill="#3B82F6" fillOpacity="0.8"/>
+          <rect x="2" y="24" width="52" height="26" rx="5" fill="#60A5FA" />
+        </svg>
+      </div>
+      <p className="text-xs font-semibold text-gray-800 text-center leading-tight truncate w-full">{course}</p>
+      <p className="text-xs text-gray-400 mt-1">{count} {count === 1 ? 'file' : 'files'}</p>
+    </button>
+  )
+}
+
+function FileCard({ doc, user, onDelete, deletingId }) {
+  const FILE_COLORS = {
+    pdf:  'bg-red-100 text-red-600',
+    docx: 'bg-blue-100 text-blue-600',
+    doc:  'bg-blue-100 text-blue-600',
+    pptx: 'bg-orange-100 text-orange-600',
+    ppt:  'bg-orange-100 text-orange-600',
+    txt:  'bg-gray-100 text-gray-500',
+  }
+  const colorClass = FILE_COLORS[doc.file_type?.toLowerCase()] || FILE_COLORS.txt
+  const busy = deletingId === doc.id
+
+  return (
+    <div className="flex flex-col bg-white border border-gray-200 rounded-2xl overflow-hidden shadow-sm hover:border-primary-300 hover:shadow-md transition-all">
+      {/* File type badge area */}
+      <div className={`flex items-center justify-center h-24 ${colorClass} bg-opacity-40`}>
+        <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${colorClass}`}>
+          <FileText className="w-6 h-6" />
+        </div>
+      </div>
+      {/* Info */}
+      <div className="p-2.5">
+        <p className="text-xs font-medium text-gray-800 truncate leading-snug">{doc.original_filename}</p>
+        <p className="text-xs text-gray-400 mt-0.5">{formatDate(doc.created_at)}</p>
+        {doc.chunk_count > 0 ? (
+          <span className="text-xs text-green-600">{doc.chunk_count} chunks</span>
+        ) : (
+          <span className="text-xs text-amber-500 flex items-center gap-1">
+            <Loader2 className="w-2.5 h-2.5 animate-spin" /> Processing…
+          </span>
+        )}
+      </div>
+      {/* Delete */}
+      {user?.id === doc.user_id && (
+        <div className="px-2.5 pb-2.5">
+          <button
+            onClick={() => onDelete(doc)}
+            disabled={busy}
+            className="w-full flex items-center justify-center gap-1.5 text-xs text-gray-400 hover:text-red-500 transition-colors py-1 rounded-lg hover:bg-red-50 disabled:opacity-50"
+          >
+            {busy ? <Loader2 className="w-3 h-3 animate-spin" /> : <Trash2 className="w-3 h-3" />}
+            Delete
+          </button>
+        </div>
+      )}
+    </div>
+  )
+}
 
 function CourseGroup({ course, docs, onDelete, deletingId, user }) {
   const [collapsed, setCollapsed] = useState(false)

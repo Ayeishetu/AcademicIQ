@@ -144,7 +144,7 @@ export default function UploadModal({ onClose, onSuccess }) {
                 Drop files here or click to browse
               </p>
               <p className="text-xs text-gray-400">
-                PDF, DOCX, TXT, PPT, PPTX · Max {MAX_SIZE_MB} MB each · Multiple files OK
+                PDF, DOCX, TXT, PPT, PPTX
               </p>
             </div>
           </div>

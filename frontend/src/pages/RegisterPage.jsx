@@ -15,10 +15,6 @@ export default function RegisterPage() {
   const handleSubmit = async (e) => {
     e.preventDefault()
     setError('')
-    if (form.password.length < 6) {
-      setError('Password must be at least 6 characters')
-      return
-    }
     setLoading(true)
     try {
       const { data } = await authApi.register(form)
@@ -88,7 +84,7 @@ export default function RegisterPage() {
                 <input
                   type={showPassword ? 'text' : 'password'}
                   className="input pr-10"
-                  placeholder="Min. 6 characters"
+                  placeholder="Choose a strong password"
                   value={form.password}
                   onChange={(e) => setForm({ ...form, password: e.target.value })}
                   required
