@@ -11,14 +11,13 @@ def _get_db_url() -> str:
     """
     Normalise the DATABASE_URL to use the correct async driver.
     SQLAlchemy async requires:  sqlite+aiosqlite  or  postgresql+asyncpg
-    Plain postgresql:// and postgres:// are swapped here, never in config.
     """
-    url = settings.database_url
+    url = settings.database_url.strip().strip('"').strip("'")
+    print(f"[DB] Raw DATABASE_URL prefix: {url[:30]}...")
     if url.startswith("postgres://"):
         return "postgresql+asyncpg://" + url[len("postgres://"):]
     if url.startswith("postgresql://"):
         return "postgresql+asyncpg://" + url[len("postgresql://"):]
-    # Already has a driver prefix (e.g. sqlite+aiosqlite, postgresql+asyncpg)
     return url
 
 
