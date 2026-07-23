@@ -88,6 +88,8 @@ _allowed_origins = list({
     _frontend_url,
     "http://localhost:5173",
     "http://localhost:3000",
+    "https://academic-iq-zaxm.vercel.app",
+    "https://academic-iq-five.vercel.app",
 })
 
 app.add_middleware(
