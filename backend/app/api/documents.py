@@ -54,6 +54,14 @@ async def upload_document(
             detail="File exceeds 500 MB limit",
         )
 
+    # Block duplicate: same filename + course_code already exists from any user
+    if await crud.document_exists_in_course(db, file.filename, course_code.strip()):
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=f'"{file.filename}" already exists in {course_code.strip()}. '
+                   f'This document has already been uploaded for this course.',
+        )
+
     safe_filename = f"{uuid.uuid4().hex}{ext}"
     mime = MIME_TYPES.get(ext.lstrip("."), "application/octet-stream")
 

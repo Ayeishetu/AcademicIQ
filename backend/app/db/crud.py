@@ -88,6 +88,20 @@ async def get_documents(
     return list(result.scalars().all())
 
 
+async def document_exists_in_course(
+    db: AsyncSession, original_filename: str, course_code: str
+) -> bool:
+    """Check if a public document with the same filename + course_code already exists from any user."""
+    result = await db.execute(
+        select(Document).where(
+            Document.original_filename == original_filename,
+            Document.course_code == course_code.strip(),
+            Document.visibility == "public",
+        )
+    )
+    return result.scalar_one_or_none() is not None
+
+
 async def get_documents_with_uploader(
     db: AsyncSession, course_code: Optional[str] = None
 ) -> list[dict]:
