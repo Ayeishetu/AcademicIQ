@@ -15,6 +15,10 @@ export default function RegisterPage() {
   const handleSubmit = async (e) => {
     e.preventDefault()
     setError('')
+    if (form.password.length < 12) {
+      setError('Password must be at least 12 characters')
+      return
+    }
     setLoading(true)
     try {
       const { data } = await authApi.register(form)
@@ -56,7 +60,7 @@ export default function RegisterPage() {
               <input
                 type="text"
                 className="input"
-                placeholder="Jane Smith"
+                placeholder="Beatrice Asare"
                 value={form.full_name}
                 onChange={(e) => setForm({ ...form, full_name: e.target.value })}
                 required
@@ -84,7 +88,7 @@ export default function RegisterPage() {
                 <input
                   type={showPassword ? 'text' : 'password'}
                   className="input pr-10"
-                  placeholder="Choose a strong password"
+                  placeholder="Min. 12 characters"
                   value={form.password}
                   onChange={(e) => setForm({ ...form, password: e.target.value })}
                   required
