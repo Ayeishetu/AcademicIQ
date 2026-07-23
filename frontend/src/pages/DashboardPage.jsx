@@ -200,6 +200,7 @@ function BrowseTab() {
   const [documents, setDocuments] = useState([])
   const [courses, setCourses] = useState([])
   const [selectedCourseCode, setSelectedCourseCode] = useState(null)
+  const [openFolder, setOpenFolder] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
 
@@ -223,7 +224,6 @@ function BrowseTab() {
 
   useEffect(() => { fetchData() }, [fetchData])
 
-  // Auto-refresh when a new document is uploaded from My Documents tab
   useEffect(() => {
     const handler = () => fetchData()
     window.addEventListener('document-uploaded', handler)
@@ -243,25 +243,26 @@ function BrowseTab() {
       <div className="bg-white border-b border-gray-200 px-4 md:px-6 py-3">
         <div className="flex items-center justify-between mb-2">
           <div className="flex items-center gap-2">
+            {openFolder && (
+              <button
+                onClick={() => setOpenFolder(null)}
+                className="flex items-center gap-1.5 text-sm text-primary-600 hover:text-primary-800 font-medium"
+              >
+                <ChevronDown className="w-4 h-4 rotate-90" />
+                Back
+              </button>
+            )}
             <span className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full">
               {documents.length} {documents.length === 1 ? 'file' : 'files'}
             </span>
-            <span className="text-xs text-gray-400">shared by all users</span>
+            {!openFolder && <span className="text-xs text-gray-400">shared by all users</span>}
           </div>
-          <button
-            onClick={fetchData}
-            className="p-2 text-gray-400 hover:text-gray-600 transition-colors"
-            title="Refresh"
-          >
+          <button onClick={fetchData} className="p-2 text-gray-400 hover:text-gray-600 transition-colors" title="Refresh">
             <RefreshCw className="w-4 h-4" />
           </button>
         </div>
-        {courses.length > 0 && (
-          <CourseFilter
-            courses={courses}
-            selected={selectedCourseCode}
-            onChange={setSelectedCourseCode}
-          />
+        {!openFolder && courses.length > 0 && (
+          <CourseFilter courses={courses} selected={selectedCourseCode} onChange={setSelectedCourseCode} />
         )}
       </div>
 
@@ -273,12 +274,8 @@ function BrowseTab() {
           </div>
         ) : error ? (
           <div className="flex flex-col items-center justify-center h-64 text-center px-4">
-            <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-4 py-3">
-              {error}
-            </p>
-            <button onClick={fetchData} className="mt-3 text-sm text-primary-600 hover:underline">
-              Try again
-            </button>
+            <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-4 py-3">{error}</p>
+            <button onClick={fetchData} className="mt-3 text-sm text-primary-600 hover:underline">Try again</button>
           </div>
         ) : documents.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-64 text-center px-4">
@@ -286,14 +283,23 @@ function BrowseTab() {
               <Users className="w-7 h-7 md:w-8 md:h-8 text-gray-400" />
             </div>
             <h3 className="font-medium text-gray-900 mb-1">No shared documents yet</h3>
-            <p className="text-sm text-gray-500 max-w-xs">
-              Documents uploaded by any user will appear here once processed.
-            </p>
+            <p className="text-sm text-gray-500 max-w-xs">Documents uploaded by any user will appear here once processed.</p>
+          </div>
+        ) : openFolder ? (
+          /* ── Files grid inside a folder ── */
+          <div>
+            <h2 className="font-semibold text-gray-900 mb-4 text-sm">{openFolder}</h2>
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 md:gap-4">
+              {(grouped[openFolder] || []).map((doc) => (
+                <BrowseFileCard key={doc.id} doc={doc} />
+              ))}
+            </div>
           </div>
         ) : (
-          <div className="space-y-4 md:space-y-6">
+          /* ── Folder grid ── */
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 md:gap-4">
             {Object.entries(grouped).map(([course, docs]) => (
-              <BrowseCourseGroup key={course} course={course} docs={docs} />
+              <FolderCard key={course} course={course} count={docs.length} onClick={() => setOpenFolder(course)} />
             ))}
           </div>
         )}
@@ -350,7 +356,116 @@ export default function DashboardPage() {
   )
 }
 
-// ── Shared sub-components ─────────────────────────────────────────────────────
+function BrowseFileCard({ doc }) {
+  const [actionId, setActionId] = useState(null)
+  const [saved, setSaved] = useState(false)
+
+  const MIME_TYPES = {
+    pdf:  'application/pdf',
+    docx: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    pptx: 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+    ppt:  'application/vnd.ms-powerpoint',
+    txt:  'text/plain',
+  }
+  const FILE_COLORS = {
+    pdf:  'bg-red-100 text-red-600',
+    docx: 'bg-blue-100 text-blue-600',
+    doc:  'bg-blue-100 text-blue-600',
+    pptx: 'bg-orange-100 text-orange-600',
+    ppt:  'bg-orange-100 text-orange-600',
+    txt:  'bg-gray-100 text-gray-500',
+  }
+  const colorClass = FILE_COLORS[doc.file_type?.toLowerCase()] || FILE_COLORS.txt
+  const busy = actionId === doc.id
+
+  const getBlob = async () => {
+    const { data } = await documentsApi.downloadBlob(doc.id)
+    const mime = MIME_TYPES[doc.file_type?.toLowerCase()] || 'application/octet-stream'
+    return new Blob([data], { type: mime })
+  }
+
+  const handleOpen = async () => {
+    setActionId(doc.id)
+    try {
+      const blob = await getBlob()
+      const url = URL.createObjectURL(blob)
+      if (['pdf', 'txt'].includes(doc.file_type?.toLowerCase())) {
+        window.open(url, '_blank', 'noopener,noreferrer')
+        setTimeout(() => URL.revokeObjectURL(url), 10000)
+      } else {
+        const a = document.createElement('a')
+        a.href = url; a.download = doc.original_filename
+        document.body.appendChild(a); a.click(); document.body.removeChild(a)
+        setTimeout(() => URL.revokeObjectURL(url), 5000)
+      }
+    } catch { alert('Could not open file.') }
+    finally { setActionId(null) }
+  }
+
+  const handleDownload = async () => {
+    setActionId(doc.id)
+    try {
+      const blob = await getBlob()
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url; a.download = doc.original_filename
+      document.body.appendChild(a); a.click(); document.body.removeChild(a)
+      setTimeout(() => URL.revokeObjectURL(url), 5000)
+    } catch { alert('Could not download file.') }
+    finally { setActionId(null) }
+  }
+
+  const handleSave = async () => {
+    setActionId(doc.id)
+    try {
+      await documentsApi.saveToLibrary(doc.id)
+      setSaved(true)
+      window.dispatchEvent(new CustomEvent('document-uploaded'))
+    } catch (err) {
+      const msg = err?.response?.data?.detail
+      if (msg === 'You already have this document in your library') setSaved(true)
+      else alert(msg || 'Could not save to library.')
+    }
+    finally { setActionId(null) }
+  }
+
+  return (
+    <div className="flex flex-col bg-white border border-gray-200 rounded-2xl overflow-hidden shadow-sm hover:border-primary-300 hover:shadow-md transition-all">
+      <div className={`flex items-center justify-center h-24 ${colorClass} bg-opacity-40`}>
+        <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${colorClass}`}>
+          <FileText className="w-6 h-6" />
+        </div>
+      </div>
+      <div className="p-2.5">
+        <p className="text-xs font-medium text-gray-800 truncate leading-snug">{doc.original_filename}</p>
+        {doc.uploaded_by && (
+          <p className="text-xs text-gray-400 mt-0.5 flex items-center gap-1">
+            <User className="w-2.5 h-2.5" />{doc.uploaded_by}
+          </p>
+        )}
+      </div>
+      <div className="px-2.5 pb-2.5 flex gap-1">
+        {busy ? (
+          <div className="flex-1 flex items-center justify-center py-1">
+            <Loader2 className="w-3.5 h-3.5 animate-spin text-primary-500" />
+          </div>
+        ) : (
+          <>
+            <button onClick={handleOpen} title="Open" className="flex-1 flex items-center justify-center py-1 text-gray-400 hover:text-primary-600 hover:bg-primary-50 rounded-lg transition-colors">
+              <Eye className="w-3.5 h-3.5" />
+            </button>
+            <button onClick={handleDownload} title="Download" className="flex-1 flex items-center justify-center py-1 text-gray-400 hover:text-primary-600 hover:bg-primary-50 rounded-lg transition-colors">
+              <Download className="w-3.5 h-3.5" />
+            </button>
+            <button onClick={handleSave} title={saved ? 'Saved' : 'Save to My Library'} disabled={saved} className={`flex-1 flex items-center justify-center py-1 rounded-lg transition-colors disabled:opacity-50 ${saved ? 'text-green-500' : 'text-gray-400 hover:text-green-600 hover:bg-green-50'}`}>
+              <BookMarked className="w-3.5 h-3.5" />
+            </button>
+          </>
+        )}
+      </div>
+    </div>
+  )
+}
 
 function FolderCard({ course, count, onClick }) {
   return (
