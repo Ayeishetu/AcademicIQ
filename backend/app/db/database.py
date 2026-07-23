@@ -6,23 +6,31 @@ from app.core.config import get_settings
 
 settings = get_settings()
 
-# asyncpg (PostgreSQL) doesn't support check_same_thread; aiosqlite needs no extra args
-connect_args = {}
-if settings.database_url.startswith("sqlite"):
-    connect_args = {"check_same_thread": False}
 
-# Supabase transaction pooler requires prepared statements to be disabled
-engine_kwargs = {}
-if "pooler.supabase.com" in settings.database_url:
-    engine_kwargs["connect_args"] = {"prepared_statement_cache_size": 0}
-elif settings.database_url.startswith("sqlite"):
+def _get_db_url() -> str:
+    """
+    Normalise the DATABASE_URL to use the correct async driver:
+    - sqlite            → sqlite+aiosqlite
+    - postgresql (prod) → postgresql+psycopg  (psycopg3, works with Supabase pooler)
+    Keeps existing driver prefixes unchanged.
+    """
+    url = settings.database_url
+    if url.startswith("postgresql://") or url.startswith("postgres://"):
+        return url.replace("postgresql://", "postgresql+psycopg://", 1) \
+                  .replace("postgres://", "postgresql+psycopg://", 1)
+    if url.startswith("postgresql+asyncpg://"):
+        return url.replace("postgresql+asyncpg://", "postgresql+psycopg://", 1)
+    return url
+
+
+_db_url = _get_db_url()
+
+engine_kwargs: dict = {"echo": False}
+
+if _db_url.startswith("sqlite"):
     engine_kwargs["connect_args"] = {"check_same_thread": False}
 
-engine = create_async_engine(
-    settings.database_url,
-    echo=False,
-    **engine_kwargs,
-)
+engine = create_async_engine(_db_url, **engine_kwargs)
 AsyncSessionLocal = async_sessionmaker(engine, expire_on_commit=False)
 
 
@@ -56,8 +64,7 @@ def _apply_sqlite_migrations(sync_conn):
 async def init_db():
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
-        # Only run SQLite-specific migrations for local dev
-        if settings.database_url.startswith("sqlite"):
+        if _db_url.startswith("sqlite"):
             await conn.run_sync(_apply_sqlite_migrations)
 
 
