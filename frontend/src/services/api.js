@@ -77,6 +77,7 @@ export const documentsApi = {
   delete: (id) => api.delete(`/documents/${id}`),
   // Returns a blob so the caller can open or download the file
   downloadBlob: (id) => api.get(`/documents/${id}/download`, { responseType: 'blob' }),
+  saveToLibrary: (id) => api.post(`/documents/${id}/save-to-library`),
 }
 
 // ── Chat ──────────────────────────────────────────────────────────────────────

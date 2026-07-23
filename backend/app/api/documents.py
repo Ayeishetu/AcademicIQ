@@ -198,6 +198,69 @@ async def download_document(
     )
 
 
+@router.post("/{doc_id}/save-to-library", response_model=DocumentOut, status_code=status.HTTP_201_CREATED)
+async def save_to_library(
+    doc_id: int,
+    background_tasks: BackgroundTasks,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Copy a public document into the current user's library and re-ingest it."""
+    # Get the source document
+    source = await crud.get_public_document_by_id(db, doc_id)
+    if not source:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Document not found")
+
+    # Don't copy your own document
+    if source.user_id == current_user.id:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="You already own this document")
+
+    # Check user doesn't already have a copy (same original_filename + course_code)
+    existing = await crud.get_documents_by_user(db, user_id=current_user.id, course_code=source.course_code)
+    if any(d.original_filename == source.original_filename for d in existing):
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="You already have this document in your library")
+
+    if not storage.file_exists(source.filename):
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Source file not found on server")
+
+    # Read source file bytes and store under a new filename for this user
+    try:
+        file_bytes = storage.read_file_bytes(source.filename)
+    except Exception:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Could not read source file")
+
+    ext = f".{source.file_type}"
+    new_filename = f"{uuid.uuid4().hex}{ext}"
+    mime = MIME_TYPES.get(source.file_type.lower(), "application/octet-stream")
+    storage.upload_file(file_bytes, new_filename, mime)
+
+    # Create DB record for the current user
+    doc = await crud.create_document(
+        db=db,
+        filename=new_filename,
+        original_filename=source.original_filename,
+        course=source.course,
+        course_code=source.course_code,
+        file_type=source.file_type,
+        chunk_count=0,
+        user_id=current_user.id,
+    )
+
+    # Re-ingest for the current user's vector store
+    background_tasks.add_task(
+        _run_ingestion,
+        filename=new_filename,
+        doc_id=doc.id,
+        original_filename=source.original_filename,
+        course=source.course,
+        course_code=source.course_code,
+        user_id=current_user.id,
+        ext=ext,
+    )
+
+    return doc
+
+
 @router.delete("/{doc_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_document(
     doc_id: int,

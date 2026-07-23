@@ -12,6 +12,7 @@ import {
   User,
   Download,
   Eye,
+  BookMarked,
 } from 'lucide-react'
 import { documentsApi } from '../services/api'
 import UploadModal from '../components/UploadModal'
