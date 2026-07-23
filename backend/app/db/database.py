@@ -11,15 +11,13 @@ def _get_db_url() -> str:
     """
     Normalise the DATABASE_URL to use the correct async driver:
     - sqlite            → sqlite+aiosqlite
-    - postgresql (prod) → postgresql+psycopg  (psycopg3, works with Supabase pooler)
+    - postgresql (prod) → postgresql+asyncpg
     Keeps existing driver prefixes unchanged.
     """
     url = settings.database_url
     if url.startswith("postgresql://") or url.startswith("postgres://"):
-        return url.replace("postgresql://", "postgresql+psycopg://", 1) \
-                  .replace("postgres://", "postgresql+psycopg://", 1)
-    if url.startswith("postgresql+asyncpg://"):
-        return url.replace("postgresql+asyncpg://", "postgresql+psycopg://", 1)
+        return url.replace("postgresql://", "postgresql+asyncpg://", 1) \
+                  .replace("postgres://", "postgresql+asyncpg://", 1)
     return url
 
 
@@ -29,6 +27,10 @@ engine_kwargs: dict = {"echo": False}
 
 if _db_url.startswith("sqlite"):
     engine_kwargs["connect_args"] = {"check_same_thread": False}
+elif "supabase" in _db_url:
+    # Supabase pooler requires prepared statements disabled for asyncpg
+    engine_kwargs["connect_args"] = {"prepared_statement_cache_size": 0}
+    engine_kwargs["pool_pre_ping"] = True
 
 engine = create_async_engine(_db_url, **engine_kwargs)
 AsyncSessionLocal = async_sessionmaker(engine, expire_on_commit=False)
