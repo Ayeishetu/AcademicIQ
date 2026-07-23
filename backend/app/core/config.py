@@ -16,20 +16,7 @@ class Settings(BaseSettings):
     # Database
     # Local dev:    sqlite+aiosqlite:///./academic_rag.db
     # Production:   postgresql://user:pass@host/dbname  (Supabase connection string)
-    # Note: if password contains @ or other special chars, set DATABASE_URL with
-    # the password already percent-encoded (@ → %40)
     database_url: str = f"sqlite+aiosqlite:///{BASE_DIR / 'academic_rag.db'}"
-
-    @field_validator("database_url", mode="before")
-    @classmethod
-    def fix_postgres_url(cls, v: str) -> str:
-        """Ensure postgresql:// URLs use asyncpg driver prefix."""
-        if isinstance(v, str):
-            if v.startswith("postgres://"):
-                v = v.replace("postgres://", "postgresql+asyncpg://", 1)
-            elif v.startswith("postgresql://"):
-                v = v.replace("postgresql://", "postgresql+asyncpg://", 1)
-        return v
 
     # Storage (relative paths — used for local dev only)
     chroma_persist_dir: str = str(BASE_DIR / "chroma_db")

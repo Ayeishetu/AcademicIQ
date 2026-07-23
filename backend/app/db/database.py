@@ -1,5 +1,4 @@
 from sqlalchemy import text
-from sqlalchemy.engine import make_url
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine, async_sessionmaker
 from sqlalchemy.orm import DeclarativeBase
 
@@ -11,12 +10,15 @@ settings = get_settings()
 def _get_db_url() -> str:
     """
     Normalise the DATABASE_URL to use the correct async driver.
-    Handles passwords containing special characters like @.
+    SQLAlchemy async requires:  sqlite+aiosqlite  or  postgresql+asyncpg
+    Plain postgresql:// and postgres:// are swapped here, never in config.
     """
     url = settings.database_url
-    if url.startswith("postgresql://") or url.startswith("postgres://"):
-        return url.replace("postgresql://", "postgresql+asyncpg://", 1) \
-                  .replace("postgres://", "postgresql+asyncpg://", 1)
+    if url.startswith("postgres://"):
+        return "postgresql+asyncpg://" + url[len("postgres://"):]
+    if url.startswith("postgresql://"):
+        return "postgresql+asyncpg://" + url[len("postgresql://"):]
+    # Already has a driver prefix (e.g. sqlite+aiosqlite, postgresql+asyncpg)
     return url
 
 
