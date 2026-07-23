@@ -197,6 +197,7 @@ function MyDocumentsTab({ user }) {
 // ── Browse tab ────────────────────────────────────────────────────────────────
 
 function BrowseTab() {
+  const { user } = useAuth()
   const [documents, setDocuments] = useState([])
   const [courses, setCourses] = useState([])
   const [selectedCourseCode, setSelectedCourseCode] = useState(null)
@@ -291,7 +292,7 @@ function BrowseTab() {
             <h2 className="font-semibold text-gray-900 mb-4 text-sm">{openFolder}</h2>
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 md:gap-4">
               {(grouped[openFolder] || []).map((doc) => (
-                <BrowseFileCard key={doc.id} doc={doc} />
+                <BrowseFileCard key={doc.id} doc={doc} isAdmin={user?.is_admin} onAdminDelete={() => fetchData()} />
               ))}
             </div>
           </div>
@@ -356,7 +357,7 @@ export default function DashboardPage() {
   )
 }
 
-function BrowseFileCard({ doc }) {
+function BrowseFileCard({ doc, isAdmin, onAdminDelete }) {
   const [actionId, setActionId] = useState(null)
   const [saved, setSaved] = useState(false)
 
@@ -429,6 +430,19 @@ function BrowseFileCard({ doc }) {
     finally { setActionId(null) }
   }
 
+  const handleAdminDelete = async () => {
+    if (!window.confirm(`Delete "${doc.original_filename}" for all users? This cannot be undone.`)) return
+    setActionId(doc.id)
+    try {
+      await documentsApi.adminDelete(doc.id)
+      onAdminDelete?.()
+    } catch (err) {
+      alert(err?.response?.data?.detail || 'Could not delete document.')
+    } finally {
+      setActionId(null)
+    }
+  }
+
   return (
     <div className="flex flex-col bg-white border border-gray-200 rounded-2xl overflow-hidden shadow-sm hover:border-primary-300 hover:shadow-md transition-all">
       <div className={`flex items-center justify-center h-24 ${colorClass} bg-opacity-40`}>
@@ -460,6 +474,11 @@ function BrowseFileCard({ doc }) {
             <button onClick={handleSave} title={saved ? 'Saved' : 'Save to My Library'} disabled={saved} className={`flex-1 flex items-center justify-center py-1 rounded-lg transition-colors disabled:opacity-50 ${saved ? 'text-green-500' : 'text-gray-400 hover:text-green-600 hover:bg-green-50'}`}>
               <BookMarked className="w-3.5 h-3.5" />
             </button>
+            {isAdmin && (
+              <button onClick={handleAdminDelete} title="Admin: delete for everyone" className="flex-1 flex items-center justify-center py-1 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors">
+                <Trash2 className="w-3.5 h-3.5" />
+              </button>
+            )}
           </>
         )}
       </div>

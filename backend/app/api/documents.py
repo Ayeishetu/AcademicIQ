@@ -283,3 +283,28 @@ async def delete_document(
     await remove_document(user_id=current_user.id, doc_id=doc_id)
     storage.delete_file(doc.filename)
     await crud.delete_document(db, doc_id, current_user.id)
+
+
+@router.delete("/admin/{doc_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def admin_delete_document(
+    doc_id: int,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Admin-only: delete any document regardless of ownership."""
+    if not current_user.is_admin:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Admin access required")
+
+    doc = await crud.get_public_document_by_id(db, doc_id)
+    if not doc:
+        # Try without visibility filter
+        from sqlalchemy import select as sa_select
+        from app.db.models import Document as DocModel
+        result = await db.execute(sa_select(DocModel).where(DocModel.id == doc_id))
+        doc = result.scalar_one_or_none()
+    if not doc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Document not found")
+
+    await remove_document(user_id=doc.user_id, doc_id=doc_id)
+    storage.delete_file(doc.filename)
+    await crud.delete_any_document(db, doc_id)

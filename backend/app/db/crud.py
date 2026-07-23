@@ -151,6 +151,18 @@ async def delete_document(db: AsyncSession, doc_id: int, user_id: int) -> bool:
     return True
 
 
+async def delete_any_document(db: AsyncSession, doc_id: int) -> bool:
+    """Admin: delete a document regardless of owner."""
+    from sqlalchemy import select as sa_select
+    result = await db.execute(sa_select(Document).where(Document.id == doc_id))
+    doc = result.scalar_one_or_none()
+    if not doc:
+        return False
+    await db.delete(doc)
+    await db.commit()
+    return True
+
+
 async def get_courses_by_user(db: AsyncSession, user_id: int) -> list[str]:
     result = await db.execute(
         select(Document.course).where(Document.user_id == user_id).distinct()
