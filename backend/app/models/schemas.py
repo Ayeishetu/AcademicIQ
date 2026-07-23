@@ -56,6 +56,21 @@ class DocumentOut(BaseModel):
     model_config = {"from_attributes": True}
 
 
+class DocumentBrowseOut(BaseModel):
+    """Like DocumentOut but includes the uploader's name — used by /browse."""
+    id: int
+    original_filename: str
+    course: str
+    course_code: str
+    file_type: str
+    chunk_count: int
+    user_id: int
+    uploaded_by: str   # full_name of the uploader
+    created_at: datetime
+
+    model_config = {"from_attributes": True}
+
+
 # ── Chat / RAG ────────────────────────────────────────────────────────────────
 
 class ChatMessage(BaseModel):

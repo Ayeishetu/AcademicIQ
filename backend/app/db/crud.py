@@ -88,6 +88,32 @@ async def get_documents(
     return list(result.scalars().all())
 
 
+async def get_documents_with_uploader(
+    db: AsyncSession, course_code: Optional[str] = None
+) -> list[dict]:
+    """Return all public documents joined with the uploader's full_name."""
+    query = (
+        select(
+            Document.id,
+            Document.original_filename,
+            Document.course,
+            Document.course_code,
+            Document.file_type,
+            Document.chunk_count,
+            Document.user_id,
+            Document.created_at,
+            User.full_name.label("uploaded_by"),
+        )
+        .join(User, Document.user_id == User.id)
+        .where(Document.visibility == "public")
+    )
+    if course_code:
+        query = query.where(Document.course_code == course_code.strip())
+    query = query.order_by(Document.course_code.asc(), Document.created_at.desc())
+    result = await db.execute(query)
+    return [row._asdict() for row in result.all()]
+
+
 async def get_public_document_by_id(db: AsyncSession, doc_id: int) -> Optional[Document]:
     result = await db.execute(
         select(Document).where(Document.id == doc_id, Document.visibility == "public")

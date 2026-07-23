@@ -21,14 +21,20 @@ api.interceptors.request.use((config) => {
   return config
 })
 
-// Handle 401 globally
+// Handle 401 globally — only redirect on auth endpoints or if no token exists,
+// so a single expired-token 401 doesn't wipe the session mid-navigation.
 api.interceptors.response.use(
   (res) => res,
   (err) => {
     if (err.response?.status === 401) {
-      localStorage.removeItem('token')
-      localStorage.removeItem('user')
-      window.location.href = '/login'
+      const token = localStorage.getItem('token')
+      // Only force-logout if we actually had a token (i.e. the session expired)
+      // or if the failed request was an auth endpoint.
+      if (token || err.config?.url?.includes('/auth/')) {
+        localStorage.removeItem('token')
+        localStorage.removeItem('user')
+        window.location.href = '/login'
+      }
     }
     return Promise.reject(err)
   }
@@ -60,8 +66,17 @@ export const documentsApi = {
     if (trimmed) params.course_code = trimmed
     return api.get('/documents/', { params })
   },
+  browse: (courseCode) => {
+    const params = {}
+    const trimmed = courseCode?.trim()
+    if (trimmed) params.course_code = trimmed
+    return api.get('/documents/browse', { params })
+  },
   courses: () => api.get('/documents/courses'),
+  browseCourses: () => api.get('/documents/courses', { params: { shared: true } }),
   delete: (id) => api.delete(`/documents/${id}`),
+  // Returns a blob so the caller can open or download the file
+  downloadBlob: (id) => api.get(`/documents/${id}/download`, { responseType: 'blob' }),
 }
 
 // ── Chat ──────────────────────────────────────────────────────────────────────

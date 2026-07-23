@@ -11,7 +11,7 @@ from app.core.dependencies import get_current_user
 from app.db.database import get_db
 from app.db import crud
 from app.db.models import User
-from app.models.schemas import DocumentOut
+from app.models.schemas import DocumentOut, DocumentBrowseOut
 from app.services.rag_pipeline import ingest_document, remove_document
 
 settings = get_settings()
@@ -116,8 +116,7 @@ async def _run_ingestion(
             await session.commit()
     except Exception as e:
         print(f"[Ingestion Error] doc_id={doc_id}: {e}")
-    finally:
-        # Clean up temp file
+        # On ingestion failure, clean up the file since it won't be accessible
         try:
             os.remove(file_path)
         except OSError:
@@ -130,19 +129,47 @@ async def list_documents(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
+    """List documents owned by the current user."""
     docs = await crud.get_documents_by_user(
         db, user_id=current_user.id, course_code=course_code
     )
     return docs
 
 
+@router.get("/browse", response_model=list[DocumentBrowseOut])
+async def browse_documents(
+    course_code: str | None = None,
+    db: AsyncSession = Depends(get_db),
+    _: User = Depends(get_current_user),  # auth required but not user-scoped
+):
+    """Browse all public documents across all users, optionally filtered by course_code."""
+    return await crud.get_documents_with_uploader(db, course_code=course_code)
+
+
 @router.get("/courses", response_model=list[str])
 async def list_courses(
+    shared: bool = False,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
+    """
+    List course codes.
+    - shared=false (default): only the current user's courses (for the personal documents tab)
+    - shared=true: all public courses across all users (for the browse tab)
+    """
+    if shared:
+        return await crud.get_course_codes(db, user_id=None)
     return await crud.get_course_codes(db, user_id=current_user.id)
 
+
+MIME_TYPES = {
+    "pdf":  "application/pdf",
+    "docx": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    "doc":  "application/msword",
+    "pptx": "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+    "ppt":  "application/vnd.ms-powerpoint",
+    "txt":  "text/plain",
+}
 
 @router.get("/{doc_id}/download")
 async def download_document(
@@ -156,9 +183,10 @@ async def download_document(
 
     file_path = os.path.join(settings.upload_dir, doc.filename)
     if not os.path.exists(file_path):
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="File not found")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="File not found on server")
 
-    return FileResponse(file_path, filename=doc.original_filename, media_type="application/octet-stream")
+    mime = MIME_TYPES.get(doc.file_type.lower(), "application/octet-stream")
+    return FileResponse(file_path, filename=doc.original_filename, media_type=mime)
 
 
 @router.delete("/{doc_id}", status_code=status.HTTP_204_NO_CONTENT)
@@ -173,6 +201,13 @@ async def delete_document(
 
     # Remove from vector store
     await remove_document(user_id=current_user.id, doc_id=doc_id)
+
+    # Remove file from disk
+    file_path = os.path.join(settings.upload_dir, doc.filename)
+    try:
+        os.remove(file_path)
+    except OSError:
+        pass
 
     # Remove from DB
     await crud.delete_document(db, doc_id, current_user.id)

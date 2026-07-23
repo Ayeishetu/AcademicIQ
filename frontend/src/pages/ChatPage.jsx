@@ -113,6 +113,7 @@ export default function ChatPage() {
           content: data.answer,
           sources: data.sources,
           chunksUsed: data.chunks_used,
+          question,   // attach the question so ChatMessage can use it as filename
         },
       ])
     } catch (err) {
