@@ -14,11 +14,18 @@ class Settings(BaseSettings):
     password_max_length: int = 64
 
     # Database
+    # Local dev:    sqlite+aiosqlite:///./academic_rag.db
+    # Production:   postgresql+asyncpg://user:pass@host/dbname  (Supabase connection string)
     database_url: str = f"sqlite+aiosqlite:///{BASE_DIR / 'academic_rag.db'}"
 
-    # Storage (relative paths — safe for both local and Render)
+    # Storage (relative paths — used for local dev only)
     chroma_persist_dir: str = str(BASE_DIR / "chroma_db")
     upload_dir: str = str(BASE_DIR / "uploads")
+
+    # Supabase — required in production for file storage + persistent DB
+    supabase_url: str = ""
+    supabase_service_key: str = ""        # service_role key (not anon key)
+    supabase_bucket: str = "documents"   # Storage bucket name
 
     # RAG settings
     chunk_size: int = 500          # tokens per chunk

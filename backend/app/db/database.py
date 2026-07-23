@@ -6,7 +6,16 @@ from app.core.config import get_settings
 
 settings = get_settings()
 
-engine = create_async_engine(settings.database_url, echo=False)
+# asyncpg (PostgreSQL) doesn't support check_same_thread; aiosqlite needs no extra args
+connect_args = {}
+if settings.database_url.startswith("sqlite"):
+    connect_args = {"check_same_thread": False}
+
+engine = create_async_engine(
+    settings.database_url,
+    echo=False,
+    connect_args=connect_args,
+)
 AsyncSessionLocal = async_sessionmaker(engine, expire_on_commit=False)
 
 
@@ -14,7 +23,8 @@ class Base(DeclarativeBase):
     pass
 
 
-def _apply_document_migrations(sync_conn):
+def _apply_sqlite_migrations(sync_conn):
+    """Run SQLite-only schema migrations (not needed for PostgreSQL)."""
     result = sync_conn.execute(text("PRAGMA table_info(documents);"))
     columns = [row[1] for row in result.fetchall()]
 
@@ -39,7 +49,9 @@ def _apply_document_migrations(sync_conn):
 async def init_db():
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
-        await conn.run_sync(_apply_document_migrations)
+        # Only run SQLite-specific migrations for local dev
+        if settings.database_url.startswith("sqlite"):
+            await conn.run_sync(_apply_sqlite_migrations)
 
 
 async def get_db():
