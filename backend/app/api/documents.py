@@ -234,7 +234,7 @@ async def save_to_library(
     mime = MIME_TYPES.get(source.file_type.lower(), "application/octet-stream")
     storage.upload_file(file_bytes, new_filename, mime)
 
-    # Create DB record for the current user
+    # Create DB record for the current user — private so it doesn't appear in Browse All
     doc = await crud.create_document(
         db=db,
         filename=new_filename,
@@ -244,6 +244,7 @@ async def save_to_library(
         file_type=source.file_type,
         chunk_count=0,
         user_id=current_user.id,
+        visibility="private",
     )
 
     # Re-ingest for the current user's vector store
